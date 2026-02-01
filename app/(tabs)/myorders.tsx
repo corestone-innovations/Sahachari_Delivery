@@ -4,45 +4,66 @@ import { ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
 
-export default function TabOneScreen() {
+interface Order {
+  _id: string;
+  status: string;
+  totalAmount: number;
+  storeId?: {
+    name: string;
+  };
+  deliveryAddress?: {
+    street: string;
+    city: string;
+  };
+}
+
+export default function MyOrdersScreen() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
 
-  // 🔹 Available delivery jobs (JWT based)
+  // 🔹 Fetch MY jobs (accepted / picked / etc.)
   const {
-    data: jobs,
-    isLoading: jobsLoading,
-  } = useQuery({
-    queryKey: ['availableJobs'],
-    queryFn: () => apiRequest('/delivery/orders?status=READY'),
+    data: myJobs,
+    isLoading,
+    isError,
+  } = useQuery<Order[]>({
+    queryKey: ['myJobs'],
+    queryFn: () => apiRequest('/delivery/orders?mine=true'),
     enabled: !!token,
   });
 
-  // 🔹 Accept job mutation
-  const acceptJobMutation = useMutation({
+  // 🔹 Mark job as delivered
+  const deliverMutation = useMutation({
     mutationFn: (jobId: string) =>
-      apiRequest(`/delivery/orders/${jobId}/accept`, {
+      apiRequest(`/delivery/orders/${jobId}/deliver`, {
         method: 'POST',
       }),
 
     onSuccess: () => {
-      Alert.alert('Success', 'Job accepted successfully!');
-      queryClient.invalidateQueries({ queryKey: ['availableJobs'] });
+      Alert.alert('Success', 'Order marked as delivered!');
+      queryClient.invalidateQueries({ queryKey: ['myJobs'] });
     },
 
     onError: (error: any) => {
-      Alert.alert('Error', error.message || 'Failed to accept the job');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to update order status',
+      );
     },
   });
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Available Jobs 🚴‍♂️</Text>
+      <Text style={styles.title}>My Orders 🛵</Text>
 
-      {jobsLoading ? (
-        <Text style={styles.subtitle}>Loading jobs...</Text>
-      ) : jobs && jobs.length > 0 ? (
-        jobs.map((job: any) => (
+      {isLoading ? (
+        <Text style={styles.subtitle}>Loading your orders...</Text>
+      ) : isError ? (
+        <Text style={styles.subtitle}>
+          Failed to load orders. Try again.
+        </Text>
+      ) : myJobs && myJobs.length > 0 ? (
+        myJobs.map((job) => (
           <View key={job._id} style={styles.jobCard}>
             <Text style={styles.jobStore}>
               {job.storeId?.name ?? 'Store'}
@@ -63,22 +84,24 @@ export default function TabOneScreen() {
               <Text style={styles.jobStatus}>{job.status}</Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.acceptButton}
-              onPress={() => acceptJobMutation.mutate(job._id)}
-              disabled={acceptJobMutation.isPending}
-            >
-              <Text style={styles.acceptButtonText}>
-                {acceptJobMutation.isPending
-                  ? 'Accepting...'
-                  : 'Accept Job'}
-              </Text>
-            </TouchableOpacity>
+            {job.status !== 'DELIVERED' && (
+              <TouchableOpacity
+                style={styles.deliverButton}
+                onPress={() => deliverMutation.mutate(job._id)}
+                disabled={deliverMutation.isPending}
+              >
+                <Text style={styles.deliverButtonText}>
+                  {deliverMutation.isPending
+                    ? 'Updating...'
+                    : 'Mark as Delivered'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         ))
       ) : (
         <Text style={styles.subtitle}>
-          No jobs available right now
+          You have no active orders.
         </Text>
       )}
     </ScrollView>
@@ -86,15 +109,15 @@ export default function TabOneScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-  },
+  container: { padding: 20 },
+
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
   },
+
   subtitle: {
     fontSize: 16,
     color: '#666',
@@ -103,47 +126,39 @@ const styles = StyleSheet.create({
   },
 
   jobCard: {
-    backgroundColor: '#FFF9E6',
+    backgroundColor: '#E6F7FF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
-  jobStore: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  jobAddress: {
-    fontSize: 14,
-    color: '#666',
-    marginVertical: 6,
-  },
+
+  jobStore: { fontSize: 16, fontWeight: '700' },
+  jobAddress: { fontSize: 14, color: '#666', marginVertical: 6 },
+
   jobRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 6,
   },
-  jobLabel: {
-    fontSize: 13,
-    color: '#666',
-  },
-  jobValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+
+  jobLabel: { fontSize: 13, color: '#666' },
+  jobValue: { fontSize: 14, fontWeight: '600' },
+
   jobStatus: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#DAA520',
+    color: '#007bff',
   },
 
-  acceptButton: {
+  deliverButton: {
     marginTop: 12,
     paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: '#28a745',
     alignItems: 'center',
   },
-  acceptButtonText: {
+
+  deliverButtonText: {
     color: '#fff',
     fontWeight: '700',
   },
