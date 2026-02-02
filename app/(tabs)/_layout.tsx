@@ -5,94 +5,118 @@ import { Alert, Pressable } from 'react-native';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
 import { useAuth } from '../contexts/AuthContext';
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
+/* ================= ICON ================= */
+
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <FontAwesome size={24} {...props} />;
 }
+
+/* ================= LAYOUT ================= */
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { token, clearAuthToken } = useAuth();
   const router = useRouter();
 
-  // Protect tabs - redirect if no token
+  /* ---------- PROTECT ROUTES ---------- */
   useEffect(() => {
     if (!token) {
       router.replace('/signup');
     }
   }, [token]);
 
+  /* ---------- LOGOUT ---------- */
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await clearAuthToken();
-            router.replace('/signup');
-          },
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await clearAuthToken();
+          router.replace('/signup');
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
-   <Tabs
-  screenOptions={{
-    tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-    headerShown: useClientOnlyValue(false, true),
-  }}
->
-  <Tabs.Screen
-    name="index"
-    options={{
-      title: 'Home',
-      tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-      headerRight: () => (
-        <Pressable onPress={handleLogout}>
-          {({ pressed }) => (
-            <FontAwesome
-              name="sign-out"
-              size={25}
-              color={Colors[colorScheme ?? 'light'].text}
-              style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-            />
-          )}
-        </Pressable>
-      ),
-    }}
-  />
+    <Tabs
+      screenOptions={{
+        headerShown: useClientOnlyValue(false, true),
 
-  <Tabs.Screen
-    name="myorders"
-    options={{
-      title: 'My Orders',
-      tabBarIcon: ({ color }) => (
-        <TabBarIcon name="list-alt" color={color} />
-      ),
-    }}
-  />
+        /* 🌿 TAB BAR THEME */
+        tabBarActiveTintColor: '#10b981',
+        tabBarInactiveTintColor: '#6b7280',
+        tabBarStyle: {
+          backgroundColor: '#ffffff',
+          borderTopWidth: 0,
+          elevation: 10,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
 
-  <Tabs.Screen
-    name="profile"
-    options={{
-      title: 'Profile',
-      tabBarIcon: ({ color }) => (
-        <TabBarIcon name="user" color={color} />
-      ),
-    }}
-  />
-</Tabs>
+        /* 🌿 HEADER THEME */
+        headerStyle: {
+          backgroundColor: '#ecfdf5',
+        },
+        headerTitleStyle: {
+          fontWeight: '800',
+          color: '#065f46',
+          fontSize: 20,
+        },
+      }}
+    >
+      {/* ================= HOME ================= */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="home" color={color} />
+          ),
+          headerRight: () => (
+            <Pressable onPress={handleLogout} style={{ marginRight: 16 }}>
+              {({ pressed }) => (
+                <FontAwesome
+                  name="sign-out"
+                  size={22}
+                  color="#065f46"
+                  style={{ opacity: pressed ? 0.5 : 1 }}
+                />
+              )}
+            </Pressable>
+          ),
+        }}
+      />
 
+      {/* ================= MY ORDERS ================= */}
+      <Tabs.Screen
+        name="myorders"
+        options={{
+          title: 'My Orders',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="list-alt" color={color} />
+          ),
+        }}
+      />
+
+      {/* ================= PROFILE ================= */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="user" color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
