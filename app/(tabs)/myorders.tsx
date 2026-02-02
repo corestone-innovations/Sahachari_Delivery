@@ -1,12 +1,29 @@
 import { Text, View } from '@/components/Themed';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
 
+/* ================= TYPES ================= */
+
+type OrderStatus =
+  | 'ACCEPTED'
+  | 'PICKED_UP'
+  | 'DELIVERED'
+  | 'FAILED';
+
 interface Order {
   _id: string;
-  status: string;
+  status: OrderStatus;
   totalAmount: number;
   storeId?: {
     name: string;
@@ -17,11 +34,13 @@ interface Order {
   };
 }
 
+/* ================= SCREEN ================= */
+
 export default function MyOrdersScreen() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
 
-  // 🔹 Fetch MY jobs (accepted / picked / etc.)
+  /* ---------- FETCH MY ORDERS ---------- */
   const {
     data: myJobs,
     isLoading,
@@ -32,35 +51,114 @@ export default function MyOrdersScreen() {
     enabled: !!token,
   });
 
-  // 🔹 Mark job as delivered
-  const deliverMutation = useMutation({
-    mutationFn: (jobId: string) =>
-      apiRequest(`/delivery/orders/${jobId}/deliver`, {
+  /* ---------- STATUS MUTATION ---------- */
+  const statusMutation = useMutation({
+    mutationFn: ({
+      jobId,
+      action,
+    }: {
+      jobId: string;
+      action: 'accept' | 'pickup' | 'deliver' | 'fail';
+    }) =>
+      apiRequest(`/delivery/orders/${jobId}/${action}`, {
         method: 'POST',
       }),
 
     onSuccess: () => {
-      Alert.alert('Success', 'Order marked as delivered!');
       queryClient.invalidateQueries({ queryKey: ['myJobs'] });
     },
 
     onError: (error: any) => {
       Alert.alert(
         'Error',
-        error.message || 'Failed to update order status',
+        error?.message || 'Failed to update order',
       );
     },
   });
+
+  /* ---------- ACTION BUTTONS ---------- */
+  const renderActions = (job: Order) => {
+    switch (job.status) {
+      case 'ACCEPTED':
+        return (
+          <TouchableOpacity
+            style={styles.pickupButton}
+            onPress={() =>
+              statusMutation.mutate({
+                jobId: job._id,
+                action: 'pickup',
+              })
+            }
+            disabled={statusMutation.isPending}
+          >
+            <Text style={styles.buttonText}>Pick Up Order</Text>
+          </TouchableOpacity>
+        );
+
+      case 'PICKED_UP':
+        return (
+          <>
+            <TouchableOpacity
+              style={styles.deliverButton}
+              onPress={() =>
+                statusMutation.mutate({
+                  jobId: job._id,
+                  action: 'deliver',
+                })
+              }
+              disabled={statusMutation.isPending}
+            >
+              <Text style={styles.buttonText}>
+                Mark as Delivered
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.failButton}
+              onPress={() =>
+                Alert.alert(
+                  'Confirm',
+                  'Mark this delivery as FAILED?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Yes',
+                      onPress: () =>
+                        statusMutation.mutate({
+                          jobId: job._id,
+                          action: 'fail',
+                        }),
+                    },
+                  ],
+                )
+              }
+              disabled={statusMutation.isPending}
+            >
+              <Text style={styles.buttonText}>
+                Mark as Failed
+              </Text>
+            </TouchableOpacity>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  /* ================= UI ================= */
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>My Orders 🛵</Text>
 
       {isLoading ? (
-        <Text style={styles.subtitle}>Loading your orders...</Text>
+        <Text style={styles.subtitle}>
+          Loading your orders...
+        </Text>
       ) : isError ? (
         <Text style={styles.subtitle}>
-          Failed to load orders. Try again.
+          Failed to load orders.
         </Text>
       ) : myJobs && myJobs.length > 0 ? (
         myJobs.map((job) => (
@@ -76,27 +174,32 @@ export default function MyOrdersScreen() {
 
             <View style={styles.jobRow}>
               <Text style={styles.jobLabel}>Amount</Text>
-              <Text style={styles.jobValue}>₹{job.totalAmount}</Text>
+              <Text style={styles.jobValue}>
+                ₹{job.totalAmount}
+              </Text>
             </View>
 
             <View style={styles.jobRow}>
               <Text style={styles.jobLabel}>Status</Text>
-              <Text style={styles.jobStatus}>{job.status}</Text>
+              <Text
+                style={[
+                  styles.jobStatus,
+                  job.status === 'DELIVERED' &&
+                    styles.statusDelivered,
+                  job.status === 'FAILED' &&
+                    styles.statusFailed,
+                ]}
+              >
+                {job.status}
+              </Text>
             </View>
 
-            {job.status !== 'DELIVERED' && (
-              <TouchableOpacity
-                style={styles.deliverButton}
-                onPress={() => deliverMutation.mutate(job._id)}
-                disabled={deliverMutation.isPending}
-              >
-                <Text style={styles.deliverButtonText}>
-                  {deliverMutation.isPending
-                    ? 'Updating...'
-                    : 'Mark as Delivered'}
-                </Text>
-              </TouchableOpacity>
-            )}
+            {job.status !== 'DELIVERED' &&
+              job.status !== 'FAILED' && (
+                <View style={{ marginTop: 12 }}>
+                  {renderActions(job)}
+                </View>
+              )}
           </View>
         ))
       ) : (
@@ -107,6 +210,8 @@ export default function MyOrdersScreen() {
     </ScrollView>
   );
 }
+
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   container: { padding: 20 },
@@ -132,8 +237,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  jobStore: { fontSize: 16, fontWeight: '700' },
-  jobAddress: { fontSize: 14, color: '#666', marginVertical: 6 },
+  jobStore: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  jobAddress: {
+    fontSize: 14,
+    color: '#666',
+    marginVertical: 6,
+  },
 
   jobRow: {
     flexDirection: 'row',
@@ -141,24 +254,54 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  jobLabel: { fontSize: 13, color: '#666' },
-  jobValue: { fontSize: 14, fontWeight: '600' },
+  jobLabel: {
+    fontSize: 13,
+    color: '#666',
+  },
+
+  jobValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
   jobStatus: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#007bff',
   },
 
-  deliverButton: {
-    marginTop: 12,
+  statusDelivered: {
+    color: '#28a745',
+  },
+
+  statusFailed: {
+    color: '#dc3545',
+  },
+
+  pickupButton: {
+    backgroundColor: '#ffc107',
     paddingVertical: 10,
     borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+
+  deliverButton: {
     backgroundColor: '#28a745',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+
+  failButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
   },
 
-  deliverButtonText: {
+  buttonText: {
     color: '#fff',
     fontWeight: '700',
   },
