@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -12,9 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest } from './services/api';
 
 interface SignupData {
@@ -112,7 +111,7 @@ export default function SignupScreen() {
       style={styles.container}
     >
       <LinearGradient
-        colors={['#f0fdf4', '#dcfce7', '#f0fdf4']}
+        colors={['#f8fffe', '#ffffff', '#f0fdf9']}
         style={styles.gradient}
       >
         <ScrollView
@@ -124,121 +123,119 @@ export default function SignupScreen() {
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <LinearGradient
-                colors={['#10b981', '#059669']}
+                colors={['#7ed957', '#4CAF50', '#2e7d32']}
                 style={styles.logoGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.logoIcon}>🚴</Text>
+                <View style={styles.logoInner}>
+                  <Text style={styles.logoIcon}>S</Text>
+                </View>
               </LinearGradient>
             </View>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join our delivery team today</Text>
+            <Text style={styles.subtitle}>Join our delivery network today</Text>
           </View>
 
           {/* Form Card */}
           <View style={styles.formCard}>
             <View style={styles.formCardInner}>
               {/* Name Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>👤</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#9ca3af"
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                    editable={!signupMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full Name"
-                  placeholderTextColor="#9ca3af"
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  editable={!signupMutation.isPending}
-                />
               </View>
 
               {/* Email Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>✉️</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#9ca3af"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!signupMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email Address"
-                  placeholderTextColor="#9ca3af"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!signupMutation.isPending}
-                />
               </View>
 
               {/* Password Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Create a password"
+                    placeholderTextColor="#9ca3af"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    editable={!signupMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#9ca3af"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  editable={!signupMutation.isPending}
-                />
               </View>
 
               {/* Confirm Password Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>🔐</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Confirm Password</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Re-enter password"
+                    placeholderTextColor="#9ca3af"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    editable={!signupMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm Password"
-                  placeholderTextColor="#9ca3af"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  editable={!signupMutation.isPending}
-                />
               </View>
 
               {/* Address Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>📍</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Address</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your address"
+                    placeholderTextColor="#9ca3af"
+                    value={address}
+                    onChangeText={setAddress}
+                    editable={!signupMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your Address"
-                  placeholderTextColor="#9ca3af"
-                  value={address}
-                  onChangeText={setAddress}
-                  editable={!signupMutation.isPending}
-                />
               </View>
 
               {/* Pincodes Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>📮</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Serviceable Pincodes</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., 688524, 688539"
+                    placeholderTextColor="#9ca3af"
+                    value={serviceablePincodes}
+                    onChangeText={setServiceablePincodes}
+                    keyboardType="numeric"
+                    editable={!signupMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Serviceable Pincodes"
-                  placeholderTextColor="#9ca3af"
-                  value={serviceablePincodes}
-                  onChangeText={setServiceablePincodes}
-                  keyboardType="numeric"
-                  editable={!signupMutation.isPending}
-                />
-              </View>
-
-              <View style={styles.helperContainer}>
-                <Text style={styles.helperIcon}>💡</Text>
                 <Text style={styles.helperText}>
-                  Enter comma-separated pincodes (e.g., 688524, 688539)
+                  Enter comma-separated pincodes
                 </Text>
               </View>
 
@@ -246,12 +243,13 @@ export default function SignupScreen() {
               <TouchableOpacity
                 onPress={handleSignup}
                 disabled={signupMutation.isPending}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
+                style={styles.buttonContainer}
               >
                 <LinearGradient
                   colors={signupMutation.isPending 
-                    ? ['#9ca3af', '#6b7280'] 
-                    : ['#10b981', '#059669']}
+                    ? ['#a5d6a7', '#81c784'] 
+                    : ['#7ed957', '#4CAF50', '#2e7d32']}
                   style={styles.button}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
@@ -259,10 +257,7 @@ export default function SignupScreen() {
                   {signupMutation.isPending ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <>
-                      <Text style={styles.buttonText}>Create Account</Text>
-                      <Text style={styles.buttonIcon}>→</Text>
-                    </>
+                    <Text style={styles.buttonText}>Create Account</Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
@@ -270,7 +265,7 @@ export default function SignupScreen() {
               {/* Divider */}
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
+                <Text style={styles.dividerText}>or</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -304,148 +299,141 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     paddingTop: 60,
     paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
   logoContainer: {
     marginBottom: 24,
   },
   logoGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: 100,
+    height: 100,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  logoInner: {
+    width: 92,
+    height: 92,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoIcon: {
-    fontSize: 40,
+    fontSize: 56,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -2,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   title: {
-    fontSize: 36,
+    fontSize: 34,
     fontWeight: '800',
-    color: '#065f46',
+    color: '#1a472a',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#047857',
+    fontSize: 15,
+    color: '#4CAF50',
     fontWeight: '500',
+    letterSpacing: 0.3,
   },
   formCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 32,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
     elevation: 8,
-    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e8f5e9',
   },
   formCardInner: {
     padding: 28,
   },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2e7d32',
+    marginBottom: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   inputWrapper: {
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f1f8f4',
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  inputIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#ecfdf5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 4,
-  },
-  inputIcon: {
-    fontSize: 20,
+    borderColor: '#c8e6c9',
   },
   input: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     fontSize: 16,
-    color: '#111827',
+    color: '#1a472a',
     fontWeight: '500',
-  },
-  helperContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-  },
-  helperIcon: {
-    fontSize: 16,
-    marginRight: 8,
   },
   helperText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#92400e',
-    fontWeight: '500',
-    lineHeight: 18,
+    fontSize: 12,
+    color: '#66bb6a',
+    marginTop: 8,
+    fontWeight: '400',
+    letterSpacing: 0.2,
+  },
+  buttonContainer: {
+    marginTop: 8,
   },
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 18,
     borderRadius: 16,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 4 },
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 8,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  buttonIcon: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '700',
-    marginLeft: 8,
+    letterSpacing: 0.8,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 28,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#e0e0e0',
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 13,
-    color: '#9ca3af',
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#9e9e9e',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   footer: {
     flexDirection: 'row',
@@ -453,16 +441,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    color: '#6b7280',
+    color: '#757575',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   linkText: {
-    color: '#10b981',
+    color: '#4CAF50',
     fontSize: 15,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
   bottomSpacing: {
-    height: 20,
+    height: 30,
   },
 });

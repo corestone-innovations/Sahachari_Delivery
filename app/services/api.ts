@@ -1,7 +1,7 @@
 import { getToken } from "./auth";
 
 // Get API URL from environment or use default
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 interface ApiRequestOptions extends RequestInit {
   requiresAuth?: boolean;
@@ -12,7 +12,7 @@ export async function apiRequest<T>(
   options: ApiRequestOptions = {},
 ): Promise<T> {
   const { requiresAuth = true, headers = {}, ...restOptions } = options;
-const requestHeaders: Record<string, string> = {
+  const requestHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     ...(headers as Record<string, string>),
   };

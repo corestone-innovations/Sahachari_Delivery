@@ -1,17 +1,17 @@
 import { Text, View } from '@/components/Themed';
 import {
-  useQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
+  ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
-  ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
 
@@ -76,82 +76,92 @@ export default function TabOneScreen() {
 
   return (
     <LinearGradient
-      colors={['#f0fdf4', '#dcfce7', '#f0fdf4']}
+      colors={['#f8fffe', '#ffffff', '#f0fdf9']}
       style={{ flex: 1 }}
     >
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>
-          Available Jobs 🚴‍♂️
-        </Text>
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>Available Jobs</Text>
+          <Text style={styles.subtitle}>
+            {jobs.length} {jobs.length === 1 ? 'delivery' : 'deliveries'} ready
+          </Text>
+        </View>
 
         {jobsLoading ? (
-          <ActivityIndicator
-            size="large"
-            color="#10b981"
-            style={{ marginTop: 40 }}
-          />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="large"
+              color="#4CAF50"
+            />
+            <Text style={styles.loadingText}>Loading jobs...</Text>
+          </View>
         ) : jobs.length > 0 ? (
           jobs.map((job) => (
             <View key={job._id} style={styles.jobCard}>
-              <Text style={styles.jobStore}>
-                {job.storeId?.name ?? 'Store'}
-              </Text>
-
-              <Text style={styles.jobAddress}>
-                {job.deliveryAddress?.street ?? '—'},{' '}
-                {job.deliveryAddress?.city ?? ''}
-              </Text>
-
-              <View style={styles.jobRow}>
-                <Text style={styles.jobLabel}>
-                  Amount
-                </Text>
-                <Text style={styles.jobValue}>
-                  ₹{job.totalAmount}
-                </Text>
+              <View style={styles.cardHeader}>
+                <View style={styles.storeIconContainer}>
+                  <Text style={styles.storeIcon}>🏪</Text>
+                </View>
+                <View style={styles.storeInfo}>
+                  <Text style={styles.jobStore}>
+                    {job.storeId?.name ?? 'Store'}
+                  </Text>
+                  <Text style={styles.jobAddress}>
+                    {job.deliveryAddress?.street ?? '—'},{' '}
+                    {job.deliveryAddress?.city ?? ''}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.jobRow}>
-                <Text style={styles.jobLabel}>
-                  Status
-                </Text>
-                <Text style={styles.jobStatus}>
-                  {job.status}
-                </Text>
+              <View style={styles.divider} />
+
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Delivery Amount</Text>
+                  <Text style={styles.detailValue}>₹{job.totalAmount}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Status</Text>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusText}>{job.status}</Text>
+                  </View>
+                </View>
               </View>
 
               <TouchableOpacity
-                style={[
-                  styles.acceptButton,
-                  acceptJobMutation.isPending &&
-                    styles.disabledButton,
-                ]}
-                onPress={() =>
-                  acceptJobMutation.mutate(job._id)
-                }
+                onPress={() => acceptJobMutation.mutate(job._id)}
                 disabled={acceptJobMutation.isPending}
                 activeOpacity={0.85}
               >
-                {acceptJobMutation.isPending ? (
-                  <ActivityIndicator
-                    color="#ffffff"
-                    size="small"
-                  />
-                ) : (
-                  <Text style={styles.acceptButtonText}>
-                    Accept Job
-                  </Text>
-                )}
+                <LinearGradient
+                  colors={acceptJobMutation.isPending 
+                    ? ['#a5d6a7', '#81c784'] 
+                    : ['#7ed957', '#4CAF50', '#2e7d32']}
+                  style={styles.acceptButton}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  {acceptJobMutation.isPending ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.acceptButtonText}>Accept Job</Text>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={styles.subtitle}>
-            No jobs available right now
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyTitle}>No Jobs Available</Text>
+            <Text style={styles.emptySubtitle}>
+              Check back later for new deliveries
+            </Text>
+          </View>
         )}
       </ScrollView>
     </LinearGradient>
@@ -166,84 +176,177 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
+  headerContainer: {
+    marginBottom: 24,
+  },
+
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
-    color: '#065f46',
-    marginBottom: 20,
-    textAlign: 'center',
+    color: '#1a472a',
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
 
   subtitle: {
-    fontSize: 16,
-    color: '#047857',
-    textAlign: 'center',
-    marginTop: 24,
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '500',
+    letterSpacing: 0.3,
+  },
+
+  loadingContainer: {
+    alignItems: 'center',
+    marginTop: 60,
+  },
+
+  loadingText: {
+    marginTop: 16,
+    fontSize: 15,
+    color: '#4CAF50',
     fontWeight: '500',
   },
 
   jobCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 16,
-    shadowColor: '#10b981',
+    shadowColor: '#4CAF50',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 18,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 6,
+    borderWidth: 1,
+    borderColor: '#e8f5e9',
+  },
+
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  storeIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#f1f8f4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+
+  storeIcon: {
+    fontSize: 28,
+  },
+
+  storeInfo: {
+    flex: 1,
   },
 
   jobStore: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#065f46',
+    color: '#1a472a',
+    marginBottom: 4,
   },
 
   jobAddress: {
     fontSize: 14,
-    color: '#6b7280',
-    marginVertical: 6,
+    color: '#66bb6a',
+    fontWeight: '400',
+    lineHeight: 20,
   },
 
-  jobRow: {
+  divider: {
+    height: 1,
+    backgroundColor: '#e8f5e9',
+    marginBottom: 16,
+  },
+
+  detailsContainer: {
+    marginBottom: 18,
+  },
+
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
+    marginBottom: 12,
   },
 
-  jobLabel: {
+  detailLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: '#2e7d32',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
-  jobValue: {
-    fontSize: 14,
+  detailValue: {
+    fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: '#1a472a',
   },
 
-  jobStatus: {
-    fontSize: 14,
+  statusBadge: {
+    backgroundColor: '#f1f8f4',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#c8e6c9',
+  },
+
+  statusText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: '#10b981',
+    color: '#4CAF50',
+    letterSpacing: 0.5,
   },
 
   acceptButton: {
-    marginTop: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 14,
-    backgroundColor: '#10b981',
     alignItems: 'center',
-  },
-
-  disabledButton: {
-    backgroundColor: '#9ca3af',
+    justifyContent: 'center',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
   },
 
   acceptButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 80,
+    paddingHorizontal: 40,
+  },
+
+  emptyIcon: {
+    fontSize: 72,
+    marginBottom: 20,
+  },
+
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a472a',
+    marginBottom: 8,
+  },
+
+  emptySubtitle: {
+    fontSize: 15,
+    color: '#66bb6a',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

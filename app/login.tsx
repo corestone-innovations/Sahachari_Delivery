@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -13,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from './contexts/AuthContext';
 import { getCurrentUser, loginApi } from './services/api';
 
@@ -65,7 +65,7 @@ export default function LoginScreen() {
       style={styles.container}
     >
       <LinearGradient
-        colors={['#f0fdf4', '#dcfce7', '#f0fdf4']}
+        colors={['#f8fffe', '#ffffff', '#f0fdf9']}
         style={styles.gradient}
       >
         <ScrollView
@@ -77,52 +77,54 @@ export default function LoginScreen() {
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <LinearGradient
-                colors={['#10b981', '#059669']}
+                colors={['#7ed957', '#4CAF50', '#2e7d32']}
                 style={styles.logoGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.logoIcon}>🚴</Text>
+                <View style={styles.logoInner}>
+                  <Text style={styles.logoIcon}>S</Text>
+                </View>
               </LinearGradient>
             </View>
             <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue delivering</Text>
+            <Text style={styles.subtitle}>Sign in to continue your journey</Text>
           </View>
 
           {/* Form Card */}
           <View style={styles.formCard}>
             <View style={styles.formCardInner}>
               {/* Email Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>✉️</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#9ca3af"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!loginMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email Address"
-                  placeholderTextColor="#9ca3af"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!loginMutation.isPending}
-                />
               </View>
 
               {/* Password Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#9ca3af"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    editable={!loginMutation.isPending}
+                  />
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#9ca3af"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  editable={!loginMutation.isPending}
-                />
               </View>
 
               {/* Forgot Password */}
@@ -134,12 +136,12 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={loginMutation.isPending}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 <LinearGradient
                   colors={loginMutation.isPending 
-                    ? ['#9ca3af', '#6b7280'] 
-                    : ['#10b981', '#059669']}
+                    ? ['#a5d6a7', '#81c784'] 
+                    : ['#7ed957', '#4CAF50', '#2e7d32']}
                   style={styles.button}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
@@ -147,10 +149,7 @@ export default function LoginScreen() {
                   {loginMutation.isPending ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <>
-                      <Text style={styles.buttonText}>Sign In</Text>
-                      <Text style={styles.buttonIcon}>→</Text>
-                    </>
+                    <Text style={styles.buttonText}>Sign In</Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
@@ -158,7 +157,7 @@ export default function LoginScreen() {
               {/* Divider */}
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
+                <Text style={styles.dividerText}>or</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -172,22 +171,6 @@ export default function LoginScreen() {
                   <Text style={styles.linkText}>Sign Up</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
-
-          {/* Features Section */}
-          <View style={styles.featuresContainer}>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureIcon}>⚡</Text>
-              <Text style={styles.featureText}>Fast Deliveries</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureIcon}>💰</Text>
-              <Text style={styles.featureText}>Earn More</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureIcon}>📱</Text>
-              <Text style={styles.featureText}>Easy to Use</Text>
             </View>
           </View>
 
@@ -208,137 +191,142 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     paddingTop: 80,
     paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
   },
   logoContainer: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   logoGradient: {
-    width: 90,
-    height: 90,
-    borderRadius: 28,
+    width: 110,
+    height: 110,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  logoInner: {
+    width: 102,
+    height: 102,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoIcon: {
-    fontSize: 44,
+    fontSize: 62,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -2,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   title: {
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '800',
-    color: '#065f46',
+    color: '#1a472a',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#047857',
+    fontSize: 15,
+    color: '#4CAF50',
     fontWeight: '500',
+    letterSpacing: 0.3,
   },
   formCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 32,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
     elevation: 8,
-    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e8f5e9',
   },
   formCardInner: {
     padding: 32,
   },
+  inputGroup: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2e7d32',
+    marginBottom: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   inputWrapper: {
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f1f8f4',
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  inputIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#ecfdf5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 4,
-  },
-  inputIcon: {
-    fontSize: 22,
+    borderColor: '#c8e6c9',
   },
   input: {
-    flex: 1,
     paddingVertical: 16,
-    paddingHorizontal: 12,
+    paddingHorizontal: 18,
     fontSize: 16,
-    color: '#111827',
+    color: '#1a472a',
     fontWeight: '500',
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
-    marginTop: -8,
+    marginBottom: 28,
+    marginTop: -12,
   },
   forgotPasswordText: {
-    color: '#10b981',
+    color: '#4CAF50',
     fontSize: 14,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   button: {
-    flexDirection: 'row',
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    borderRadius: 16,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 8,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  buttonIcon: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '700',
-    marginLeft: 8,
+    letterSpacing: 0.8,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 28,
+    marginVertical: 32,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#e0e0e0',
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 13,
-    color: '#9ca3af',
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#9e9e9e',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   footer: {
     flexDirection: 'row',
@@ -346,34 +334,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    color: '#6b7280',
+    color: '#757575',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   linkText: {
-    color: '#10b981',
+    color: '#4CAF50',
     fontSize: 15,
     fontWeight: '700',
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 32,
-    paddingHorizontal: 16,
-  },
-  featureItem: {
-    alignItems: 'center',
-  },
-  featureIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  featureText: {
-    fontSize: 13,
-    color: '#047857',
-    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   bottomSpacing: {
-    height: 20,
+    height: 40,
   },
 });
