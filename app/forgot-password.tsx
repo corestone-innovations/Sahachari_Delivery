@@ -1,62 +1,82 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "./contexts/AuthContext";
-import { getCurrentUser, loginApi } from "./services/api";
+import { apiRequest } from "./services/api";
 
-export default function LoginScreen() {
+export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { setAuthToken } = useAuth();
-  const queryClient = useQueryClient();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: { email: string; password: string }) => {
-      const loginResponse = await loginApi(credentials);
-      return loginResponse;
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { email: string; newPassword: string }) => {
+      return apiRequest("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(data),
+        requiresAuth: false,
+      });
     },
-    onSuccess: async (data) => {
-      console.log("Login response:", data);
-
-      await setAuthToken(data.accessToken);
-
-      try {
-        const userData = await getCurrentUser();
-        queryClient.setQueryData(["currentUser"], userData);
-      } catch (error) {
-        console.log("Could not fetch user data:", error);
-      }
-
-      router.replace("/(tabs)");
+    onSuccess: () => {
+      Alert.alert(
+        "Password Changed",
+        "Your password has been changed successfully. Please log in with your new password.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/login"),
+          },
+        ],
+        { cancelable: false },
+      );
     },
     onError: (error: any) => {
-      console.error("Login error:", error);
-      Alert.alert("Login Failed", error.message || "Invalid email or password");
+      Alert.alert(
+        "Error",
+        error?.message || "Failed to change password. Please try again.",
+      );
     },
   });
 
-  const handleLogin = () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+  const handleChangePassword = () => {
+    if (!email.trim()) {
+      Alert.alert("Error", "Please enter your email address");
       return;
     }
 
-    loginMutation.mutate({ email, password });
+    if (!newPassword.trim()) {
+      Alert.alert("Error", "Please enter a new password");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    changePasswordMutation.mutate({
+      email,
+      newPassword,
+    });
   };
 
   return (
@@ -84,9 +104,9 @@ export default function LoginScreen() {
                   </View>
                 </LinearGradient>
               </View>
-              <Text style={styles.title}>Login</Text>
+              <Text style={styles.title}>Change Password</Text>
               <Text style={styles.subtitle}>
-                Sign in to continue your journey
+                Enter your details to reset password
               </Text>
             </View>
 
@@ -105,46 +125,53 @@ export default function LoginScreen() {
                       onChangeText={setEmail}
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      editable={!loginMutation.isPending}
+                      editable={!changePasswordMutation.isPending}
                     />
                   </View>
                 </View>
 
-                {/* Password Input */}
+                {/* New Password Input */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
+                  <Text style={styles.inputLabel}>New Password</Text>
                   <View style={styles.inputWrapper}>
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter your password"
+                      placeholder="Enter new password"
                       placeholderTextColor="#9ca3af"
-                      value={password}
-                      onChangeText={setPassword}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
                       secureTextEntry
-                      editable={!loginMutation.isPending}
+                      editable={!changePasswordMutation.isPending}
                     />
                   </View>
                 </View>
 
-                {/* Forgot Password */}
-                <TouchableOpacity
-                  style={styles.forgotPassword}
-                  onPress={() => router.push("/forgot-password")}
-                >
-                  <Text style={styles.forgotPasswordText}>
-                    Forgot Password?
-                  </Text>
-                </TouchableOpacity>
+                {/* Confirm New Password Input */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Confirm New Password</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Re-enter new password"
+                      placeholderTextColor="#9ca3af"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry
+                      editable={!changePasswordMutation.isPending}
+                    />
+                  </View>
+                </View>
 
-                {/* Login Button */}
+                {/* Change Password Button */}
                 <TouchableOpacity
-                  onPress={handleLogin}
-                  disabled={loginMutation.isPending}
+                  onPress={handleChangePassword}
+                  disabled={changePasswordMutation.isPending}
                   activeOpacity={0.85}
+                  style={styles.buttonContainer}
                 >
                   <LinearGradient
                     colors={
-                      loginMutation.isPending
+                      changePasswordMutation.isPending
                         ? ["#a5d6a7", "#81c784"]
                         : ["#7ed957", "#4CAF50", "#2e7d32"]
                     }
@@ -152,10 +179,10 @@ export default function LoginScreen() {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    {loginMutation.isPending ? (
+                    {changePasswordMutation.isPending ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.buttonText}>Sign In</Text>
+                      <Text style={styles.buttonText}>Change Password</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -167,14 +194,16 @@ export default function LoginScreen() {
                   <View style={styles.dividerLine} />
                 </View>
 
-                {/* Sign Up Link */}
+                {/* Back to Login Link */}
                 <View style={styles.footer}>
-                  <Text style={styles.footerText}>Don't have an account? </Text>
+                  <Text style={styles.footerText}>
+                    Remember your password?{" "}
+                  </Text>
                   <TouchableOpacity
-                    onPress={() => router.push("/signup")}
-                    disabled={loginMutation.isPending}
+                    onPress={() => router.push("/login")}
+                    disabled={changePasswordMutation.isPending}
                   >
-                    <Text style={styles.linkText}>Sign Up</Text>
+                    <Text style={styles.linkText}>Log In</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -235,7 +264,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   title: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "800",
     color: "#1a472a",
     marginBottom: 6,
@@ -287,16 +316,8 @@ const styles = StyleSheet.create({
     color: "#1a472a",
     fontWeight: "500",
   },
-  forgotPassword: {
-    alignSelf: "flex-end",
-    marginBottom: 20,
-    marginTop: -6,
-  },
-  forgotPasswordText: {
-    color: "#4CAF50",
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.2,
+  buttonContainer: {
+    marginTop: 8,
   },
   button: {
     paddingVertical: 16,

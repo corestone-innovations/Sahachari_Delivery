@@ -1,9 +1,9 @@
 import { useColorScheme } from "@/components/useColorScheme";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider,
 } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
@@ -95,6 +95,7 @@ function RootLayoutNav() {
         {/* Auth screens */}
         <Stack.Screen name="signup" />
         <Stack.Screen name="login" />
+        <Stack.Screen name="forgot-password" />
 
         {/* Main app */}
         <Stack.Screen name="(tabs)" />

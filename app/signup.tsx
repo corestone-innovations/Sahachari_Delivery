@@ -3,19 +3,22 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest } from "./services/api";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface SignupData {
   name: string;
@@ -120,8 +123,9 @@ export default function SignupScreen() {
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            bounces={false}
           >
-            {/* Decorative header */}
+            {/* Compact header */}
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <LinearGradient
@@ -135,7 +139,7 @@ export default function SignupScreen() {
                   </View>
                 </LinearGradient>
               </View>
-              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.title}>Register</Text>
               <Text style={styles.subtitle}>
                 Join our delivery network today
               </Text>
@@ -289,9 +293,6 @@ export default function SignupScreen() {
                 </View>
               </View>
             </View>
-
-            {/* Bottom Spacing */}
-            <View style={styles.bottomSpacing} />
           </ScrollView>
         </LinearGradient>
       </KeyboardAvoidingView>
@@ -308,128 +309,131 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 12,
+    justifyContent: "center",
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 14,
   },
   logoContainer: {
-    marginBottom: 24,
+    marginBottom: 10,
   },
   logoGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoInner: {
-    width: 92,
-    height: 92,
-    borderRadius: 26,
+    width: 58,
+    height: 58,
+    borderRadius: 16,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
   logoIcon: {
-    fontSize: 56,
+    fontSize: 34,
     fontWeight: "900",
     color: "#FFFFFF",
-    letterSpacing: -2,
-    textShadowColor: "rgba(0, 0, 0, 0.15)",
+    letterSpacing: -1,
+    textShadowColor: "rgba(37, 34, 34, 0.15)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: "800",
     color: "#1a472a",
-    marginBottom: 8,
+    marginBottom: 4,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 13,
     color: "#4CAF50",
-    fontWeight: "500",
+    fontWeight: "800",
     letterSpacing: 0.3,
   },
   formCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 28,
+    borderRadius: 24,
     shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowRadius: 16,
+    elevation: 6,
     borderWidth: 1,
     borderColor: "#e8f5e9",
   },
   formCardInner: {
-    padding: 28,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "800",
     color: "#2e7d32",
-    marginBottom: 10,
+    marginBottom: 5,
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
   inputWrapper: {
     backgroundColor: "#f1f8f4",
-    borderRadius: 16,
-    borderWidth: 2,
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderColor: "#c8e6c9",
   },
   input: {
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    fontSize: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    fontSize: 14,
     color: "#1a472a",
-    fontWeight: "500",
+    fontWeight: "800",
   },
   helperText: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#66bb6a",
-    marginTop: 8,
-    fontWeight: "400",
-    letterSpacing: 0.2,
+    marginTop: 4,
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
   buttonContainer: {
-    marginTop: 8,
+    marginTop: 6,
   },
   button: {
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 10,
+    elevation: 6,
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.8,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 28,
+    marginVertical: 14,
   },
   dividerLine: {
     flex: 1,
@@ -437,10 +441,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#e0e0e0",
   },
   dividerText: {
-    marginHorizontal: 16,
-    fontSize: 12,
+    marginHorizontal: 12,
+    fontSize: 11,
     color: "#9e9e9e",
-    fontWeight: "500",
+    fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -451,16 +455,13 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: "#757575",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "400",
   },
   linkText: {
     color: "#4CAF50",
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
     letterSpacing: 0.3,
-  },
-  bottomSpacing: {
-    height: 30,
   },
 });
