@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
-
+import { RefreshControl } from "react-native";
+import { useState } from "react";
 /* ================= TYPES ================= */
 
 type UserProfile = {
@@ -33,6 +34,7 @@ export default function ProfileScreen() {
     data: user,
     isLoading,
     isError,
+     refetch,
   } = useQuery<UserProfile>({
     queryKey: ['myProfile'],
     queryFn: () => apiRequest('/users/me'),
@@ -53,6 +55,14 @@ export default function ProfileScreen() {
       },
     ]);
   };
+  /*refresh */
+    const [refreshing, setRefreshing] = useState(false);
+  
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   /* ================= UI ================= */
 
@@ -61,8 +71,18 @@ export default function ProfileScreen() {
       colors={['#f8fffe', '#ffffff', '#f0fdf9']}
       style={{ flex: 1 }}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* ---------- HEADER ---------- */}
+<ScrollView
+  contentContainerStyle={styles.container}
+  showsVerticalScrollIndicator={false}
+  refreshControl={
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      colors={["#4CAF50"]}
+      tintColor="#4CAF50"
+    />
+  }
+>        {/* ---------- HEADER ---------- */}
         <View style={styles.header}>
           <LinearGradient
             colors={['#7ed957', '#4CAF50', '#2e7d32']}

@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
-
+import { RefreshControl } from "react-native";
+import { useState } from "react";
 /* ================= TYPES ================= */
 
 type OrderStatus =
@@ -42,6 +43,7 @@ export default function MyOrdersScreen() {
     data: myJobs,
     isLoading,
     isError,
+     refetch,
   } = useQuery<Order[]>({
     queryKey: ['myJobs'],
     queryFn: () => apiRequest('/delivery/orders?mine=true'),
@@ -72,6 +74,14 @@ export default function MyOrdersScreen() {
       );
     },
   });
+  /*refresh */
+  const [refreshing, setRefreshing] = useState(false);
+
+const onRefresh = async () => {
+  setRefreshing(true);
+  await refetch();
+  setRefreshing(false);
+};
 
   /* ---------- ACTION BUTTONS ---------- */
   const renderActions = (job: Order) => {
@@ -160,6 +170,14 @@ export default function MyOrdersScreen() {
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#4CAF50"]}
+            tintColor="#4CAF50"
+          />
+        }
       >
         <View style={styles.headerContainer}>
           <Text style={styles.title}>My Orders</Text>

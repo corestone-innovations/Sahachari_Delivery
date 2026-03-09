@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
-
+import { RefreshControl } from "react-native";
+import { useState } from "react";
 /* ================= TYPES ================= */
 
 type Job = {
@@ -40,7 +41,8 @@ export default function TabOneScreen() {
   const {
     data: jobs = [], // ✅ default empty array
     isLoading: jobsLoading,
-  } = useQuery<Job[]>({
+     refetch,
+   } = useQuery<Job[]>({
     queryKey: ['availableJobs'],
     queryFn: () =>
       apiRequest('/delivery/orders?status=READY'),
@@ -71,7 +73,14 @@ export default function TabOneScreen() {
       );
     },
   });
+  /*refresh */
+  const [refreshing, setRefreshing] = useState(false);
 
+const onRefresh = async () => {
+  setRefreshing(true);
+  await refetch();
+  setRefreshing(false);
+};
   /* ================= UI ================= */
 
   return (
@@ -80,9 +89,19 @@ export default function TabOneScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
+  contentContainerStyle={styles.container}
+  showsVerticalScrollIndicator={false}
+  refreshControl={
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      colors={["#4CAF50"]}
+      tintColor="#4CAF50"
+    />
+  }
+>
+  
+
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Available Jobs</Text>
           <Text style={styles.subtitle}>
