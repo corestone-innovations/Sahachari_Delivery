@@ -5,7 +5,6 @@ import { Alert, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
-import { useColorScheme } from "@/components/useColorScheme";
 import { useAuth } from "../contexts/AuthContext";
 
 /* ================= ICON ================= */
@@ -20,7 +19,6 @@ function TabBarIcon(props: {
 /* ================= LAYOUT ================= */
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const { token, clearAuthToken } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -30,7 +28,7 @@ export default function TabLayout() {
     if (!token) {
       router.replace("/signup");
     }
-  }, [token]);
+  }, [router, token]);
 
   /* ---------- LOGOUT ---------- */
   const handleLogout = () => {

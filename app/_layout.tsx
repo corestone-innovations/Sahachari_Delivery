@@ -96,6 +96,10 @@ function RootLayoutNav() {
         <Stack.Screen name="signup" />
         <Stack.Screen name="login" />
         <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="edit-profile" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="help-support" />
+        <Stack.Screen name="rate-app" />
 
         {/* Main app */}
         <Stack.Screen name="(tabs)" />

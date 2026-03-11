@@ -45,14 +45,14 @@ export async function apiRequest<T>(
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch (e) {
+    } catch {
       // If response is not JSON, try to get text
       try {
         const errorText = await response.text();
         if (errorText) {
           errorMessage = errorText;
         }
-      } catch (textError) {
+      } catch {
         // Use default error message
       }
     }
@@ -99,8 +99,25 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  mobileNumber?: string;
+  phoneNumber?: string;
   address?: string;
   serviceablePincodes?: string[];
+}
+
+export interface UserProfileUpdate {
+  name?: string;
+  email?: string;
+  mobileNumber?: string;
+  phoneNumber?: string;
+}
+
+function shouldRetryProfileUpdate(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return /(404|405|not found|method not allowed|cannot put|cannot patch)/i.test(
+    message,
+  );
 }
 
 export async function loginApi(
@@ -146,6 +163,41 @@ export async function updateUserProfile(
     method: "PUT",
     body: JSON.stringify(data),
     requiresAuth: true, // Token required
+  });
+}
+
+export async function updateCurrentUserProfile(
+  data: UserProfileUpdate,
+  userId?: string,
+): Promise<User> {
+  try {
+    return await apiRequest("/users/me", {
+      method: "PUT",
+      body: JSON.stringify(data),
+      requiresAuth: true,
+    });
+  } catch (error) {
+    if (!shouldRetryProfileUpdate(error)) {
+      throw error;
+    }
+  }
+
+  try {
+    return await apiRequest("/users/me", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+      requiresAuth: true,
+    });
+  } catch (error) {
+    if (!userId || !shouldRetryProfileUpdate(error)) {
+      throw error;
+    }
+  }
+
+  return apiRequest(`/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+    requiresAuth: true,
   });
 }
 
