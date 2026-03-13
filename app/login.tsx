@@ -3,20 +3,24 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AuthCard from "../components/AuthCard";
+import LabeledTextInput from "../components/LabeledTextInput";
+import PrimaryButton from "../components/PrimaryButton";
+import { deliveryTheme } from "../constants/DeliveryTheme";
 import { useAuth } from "./contexts/AuthContext";
 import { getCurrentUser, loginApi } from "./services/api";
+
+const { colors, spacing } = deliveryTheme;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -67,7 +71,7 @@ export default function LoginScreen() {
         style={styles.container}
       >
         <LinearGradient
-          colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
+          colors={[colors.bgTop, colors.bgMid, colors.bgBottom]}
           style={styles.gradient}
         >
           <View style={styles.content}>
@@ -85,94 +89,61 @@ export default function LoginScreen() {
             </View>
 
             {/* Form Card */}
-            <View style={styles.formCard}>
-              <View style={styles.formCardInner}>
-                {/* Email Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email Address</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your email"
-                      placeholderTextColor="#9ca3af"
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      editable={!loginMutation.isPending}
-                    />
-                  </View>
-                </View>
+            <AuthCard>
+              {/* Email Input */}
+              <LabeledTextInput
+                label="Email Address"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loginMutation.isPending}
+              />
 
-                {/* Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your password"
-                      placeholderTextColor="#9ca3af"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry
-                      editable={!loginMutation.isPending}
-                    />
-                  </View>
-                </View>
+              {/* Password Input */}
+              <LabeledTextInput
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                editable={!loginMutation.isPending}
+              />
 
-                {/* Forgot Password */}
-                <TouchableOpacity
-                  style={styles.forgotPassword}
-                  onPress={() => router.push("/forgot-password")}
-                >
-                  <Text style={styles.forgotPasswordText}>
-                    Forgot Password?
-                  </Text>
-                </TouchableOpacity>
+              {/* Forgot Password */}
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={() => router.push("/forgot-password")}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
 
-                {/* Login Button */}
-                <TouchableOpacity
-                  onPress={handleLogin}
-                  disabled={loginMutation.isPending}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={
-                      loginMutation.isPending
-                        ? ["#a5d6a7", "#81c784"]
-                        : ["#7ed957", "#4CAF50", "#2e7d32"]
-                    }
-                    style={styles.button}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    {loginMutation.isPending ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.buttonText}>Sign In</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
+              {/* Login Button */}
+              <PrimaryButton
+                title="Sign In"
+                onPress={handleLogin}
+                loading={loginMutation.isPending}
+              />
 
-                {/* Divider */}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Sign Up Link */}
-                <View style={styles.footer}>
-                  <Text style={styles.footerText}>Don't have an account? </Text>
-                  <TouchableOpacity
-                    onPress={() => router.push("/signup")}
-                    disabled={loginMutation.isPending}
-                  >
-                    <Text style={styles.linkText}>Sign Up</Text>
-                  </TouchableOpacity>
-                </View>
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
               </View>
-            </View>
+
+              {/* Sign Up Link */}
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Don't have an account? </Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/signup")}
+                  disabled={loginMutation.isPending}
+                >
+                  <Text style={styles.linkText}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </AuthCard>
           </View>
         </LinearGradient>
       </KeyboardAvoidingView>
@@ -189,12 +160,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xxl,
     justifyContent: "center",
   },
   header: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
   logoImage: {
     width: 100,
@@ -203,55 +174,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "800",
-    color: "#1a472a",
-    marginBottom: 6,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: "#4CAF50",
+    color: colors.accent,
     fontWeight: "500",
     letterSpacing: 0.3,
-  },
-  formCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "#e8f5e9",
-  },
-  formCardInner: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#2e7d32",
-    marginBottom: 8,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  inputWrapper: {
-    backgroundColor: "#f1f8f4",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#c8e6c9",
-  },
-  input: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: "#1a472a",
-    fontWeight: "500",
   },
   forgotPassword: {
     alignSelf: "flex-end",
@@ -259,27 +190,10 @@ const styles = StyleSheet.create({
     marginTop: -6,
   },
   forgotPasswordText: {
-    color: "#4CAF50",
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "600",
     letterSpacing: 0.2,
-  },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.8,
   },
   divider: {
     flexDirection: "row",
@@ -289,12 +203,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: colors.divider,
   },
   dividerText: {
     marginHorizontal: 14,
     fontSize: 11,
-    color: "#9e9e9e",
+    color: colors.textMuted,
     fontWeight: "500",
     textTransform: "uppercase",
     letterSpacing: 1,
@@ -305,12 +219,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   footerText: {
-    color: "#757575",
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: "400",
   },
   linkText: {
-    color: "#4CAF50",
+    color: colors.accent,
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
