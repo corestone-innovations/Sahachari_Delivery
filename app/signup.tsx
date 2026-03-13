@@ -3,17 +3,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest } from "./services/api";
@@ -23,6 +24,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 interface SignupData {
   name: string;
   email: string;
+  mobileNumber?: string;
   password: string;
   address: string;
   serviceablePincodes: string[];
@@ -42,6 +44,7 @@ export default function SignupScreen() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [address, setAddress] = useState("");
@@ -89,6 +92,15 @@ export default function SignupScreen() {
       return;
     }
 
+    const sanitizedMobileNumber = mobileNumber.replace(/\D/g, "");
+    if (
+      sanitizedMobileNumber &&
+      (sanitizedMobileNumber.length < 10 || sanitizedMobileNumber.length > 15)
+    ) {
+      Alert.alert("Error", "Please enter a valid mobile number");
+      return;
+    }
+
     if (!address.trim()) {
       Alert.alert("Error", "Please enter your address");
       return;
@@ -102,6 +114,7 @@ export default function SignupScreen() {
     signupMutation.mutate({
       name,
       email,
+      mobileNumber: mobileNumber.trim() || undefined,
       password,
       address,
       serviceablePincodes: parsedPincodes,
@@ -127,18 +140,11 @@ export default function SignupScreen() {
           >
             {/* Compact header */}
             <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <LinearGradient
-                  colors={["#7ed957", "#4CAF50", "#2e7d32"]}
-                  style={styles.logoGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.logoInner}>
-                    <Text style={styles.logoIcon}>S</Text>
-                  </View>
-                </LinearGradient>
-              </View>
+              <Image
+                source={require("../assets/images/logo.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
               <Text style={styles.title}>Register</Text>
               <Text style={styles.subtitle}>
                 Join our delivery network today
@@ -176,6 +182,22 @@ export default function SignupScreen() {
                       onChangeText={setEmail}
                       keyboardType="email-address"
                       autoCapitalize="none"
+                      editable={!signupMutation.isPending}
+                    />
+                  </View>
+                </View>
+
+                {/* Mobile Number Input */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Mobile Number</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your mobile number"
+                      placeholderTextColor="#9ca3af"
+                      value={mobileNumber}
+                      onChangeText={setMobileNumber}
+                      keyboardType="phone-pad"
                       editable={!signupMutation.isPending}
                     />
                   </View>
@@ -318,37 +340,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
   },
-  logoContainer: {
-    marginBottom: 10,
-  },
-  logoGradient: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  logoInner: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoIcon: {
-    fontSize: 34,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: -1,
-    textShadowColor: "rgba(37, 34, 34, 0.15)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+
+  logoImage: {
+    width: 100,
+    height: 100,
   },
   title: {
     fontSize: 28,

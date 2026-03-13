@@ -12,6 +12,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "./contexts/AuthContext";
@@ -72,18 +73,11 @@ export default function LoginScreen() {
           <View style={styles.content}>
             {/* Compact header */}
             <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <LinearGradient
-                  colors={["#7ed957", "#4CAF50", "#2e7d32"]}
-                  style={styles.logoGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.logoInner}>
-                    <Text style={styles.logoIcon}>S</Text>
-                  </View>
-                </LinearGradient>
-              </View>
+              <Image
+                source={require("../assets/images/logo.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
               <Text style={styles.title}>Login</Text>
               <Text style={styles.subtitle}>
                 Sign in to continue your journey
@@ -202,37 +196,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
   },
-  logoContainer: {
-    marginBottom: 14,
-  },
-  logoGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoInner: {
-    width: 66,
-    height: 66,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoIcon: {
-    fontSize: 40,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: -1,
-    textShadowColor: "rgba(0, 0, 0, 0.15)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+  logoImage: {
+    width: 100,
+    height: 100,
   },
   title: {
     fontSize: 30,

@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -20,8 +21,9 @@ type UserProfile = {
   name?: string;
   email?: string;
   mobileNumber?: string;
-  phoneNumber?: string;
   role?: string;
+  image?: string;
+  status?: string;
 };
 
 /* ================= SCREEN ================= */
@@ -84,7 +86,6 @@ export default function ProfileScreen() {
           />
         }
       >
-        {" "}
         {/* ---------- HEADER ---------- */}
         <View style={styles.header}>
           <LinearGradient
@@ -93,8 +94,15 @@ export default function ProfileScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.avatarInner}>
-              <FontAwesome name="user" size={46} color="#FFFFFF" />
+            <View style={[styles.avatarInner, { overflow: "hidden" }]}>
+              {user?.image ? (
+                <Image
+                  source={{ uri: user.image }}
+                  style={{ width: "100%", height: "100%" }}
+                />
+              ) : (
+                <FontAwesome name="user" size={46} color="#FFFFFF" />
+              )}
             </View>
           </LinearGradient>
           <Text style={styles.title}>{user?.name || "User"}</Text>
@@ -128,18 +136,18 @@ export default function ProfileScreen() {
             <InfoRow
               icon="phone"
               label="Mobile Number"
-              value={user.mobileNumber || user.phoneNumber || "N/A"}
+              value={user.mobileNumber || "N/A"}
             />
             <Divider />
 
-            <InfoRow
+            {/* <InfoRow
               icon="id-badge"
               label="User ID"
               value={
                 user._id ? String(user._id).substring(0, 16) + "..." : "N/A"
               }
             />
-            <Divider />
+            <Divider /> */}
 
             <InfoRow
               icon="shield"

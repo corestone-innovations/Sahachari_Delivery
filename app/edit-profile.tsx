@@ -1,31 +1,38 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "./contexts/AuthContext";
-import { apiRequest, updateCurrentUserProfile } from "./services/api";
+import {
+  apiRequest,
+  getPresignedUploadUrl,
+  updateCurrentUserProfile,
+  uploadFileToPresignedUrl,
+} from "./services/api";
 
 type UserProfile = {
   _id?: string;
   name?: string;
   email?: string;
   mobileNumber?: string;
-  phoneNumber?: string;
+  image?: string;
 };
 
 export default function EditProfileScreen() {
@@ -47,6 +54,9 @@ export default function EditProfileScreen() {
   const [email, setEmail] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
 
+  const [selectedImageUri, setSelectedImageUri] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   useEffect(() => {
     if (!user) {
       return;
@@ -55,20 +65,20 @@ export default function EditProfileScreen() {
     setName((currentName) => currentName || user.name || "");
     setEmail((currentEmail) => currentEmail || user.email || "");
     setMobileNumber(
-      (currentMobileNumber) =>
-        currentMobileNumber || user.mobileNumber || user.phoneNumber || "",
+      (currentMobileNumber) => currentMobileNumber || user.mobileNumber || "",
     );
+    setSelectedImageUri((cur) => cur || user.image || "");
   }, [user]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const imageUrl = await uploadImageIfNeeded();
+      return updateCurrentUserProfile({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         mobileNumber: mobileNumber.trim(),
-      };
-
-      return updateCurrentUserProfile(payload, user?._id);
+        image: imageUrl,
+      });
     },
     onSuccess: async () => {
       await Promise.all([
@@ -94,7 +104,8 @@ export default function EditProfileScreen() {
   const hasChanges =
     name.trim() !== (user?.name || "") ||
     email.trim().toLowerCase() !== (user?.email || "").toLowerCase() ||
-    mobileNumber.trim() !== (user?.mobileNumber || user?.phoneNumber || "");
+    mobileNumber.trim() !== (user?.mobileNumber || "") ||
+    selectedImageUri !== (user?.image || "");
 
   const handleSave = () => {
     if (!name.trim() || !email.trim()) {
@@ -118,6 +129,43 @@ export default function EditProfileScreen() {
     }
 
     updateProfileMutation.mutate();
+  };
+
+  const handlePickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Required", "Please allow gallery access.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length) {
+      setSelectedImageUri(result.assets[0].uri);
+    }
+  };
+
+  const uploadImageIfNeeded = async (): Promise<string | undefined> => {
+    if (!selectedImageUri || selectedImageUri === user?.image) {
+      return user?.image;
+    }
+    const fileName =
+      selectedImageUri.split("/").pop() || `profile-${Date.now()}.jpg`;
+    const fileType = fileName.toLowerCase().endsWith(".png")
+      ? "image/png"
+      : "image/jpeg";
+    setIsUploadingImage(true);
+    try {
+      const { url } = await getPresignedUploadUrl(fileName, fileType, "users");
+      await uploadFileToPresignedUrl(url, selectedImageUri, fileType);
+      // public URL = signed URL without query params
+      return url.split("?")[0];
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   return (
@@ -160,6 +208,34 @@ export default function EditProfileScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.formCard}>
+                <TouchableOpacity
+                  style={styles.imageSection}
+                  onPress={handlePickImage}
+                  activeOpacity={0.85}
+                >
+                  {selectedImageUri ? (
+                    <View style={styles.imageWrapper}>
+                      <Image
+                        source={{ uri: selectedImageUri }}
+                        style={styles.profileImage}
+                      />
+                      <View style={styles.editBadge}>
+                        <FontAwesome name="pencil" size={14} color="#ffffff" />
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.imageWrapper}>
+                      <View style={styles.imageFrame}>
+                        <FontAwesome name="camera" size={28} color="#4CAF50" />
+                        <Text style={styles.changePhotoText}>Add Photo</Text>
+                      </View>
+                      <View style={styles.editBadge}>
+                        <FontAwesome name="pencil" size={14} color="#ffffff" />
+                      </View>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Full Name</Text>
                   <View style={styles.inputWrapper}>
@@ -214,7 +290,11 @@ export default function EditProfileScreen() {
                   ]}
                   onPress={handleSave}
                   activeOpacity={0.85}
-                  disabled={!hasChanges || updateProfileMutation.isPending}
+                  disabled={
+                    !hasChanges ||
+                    updateProfileMutation.isPending ||
+                    isUploadingImage
+                  }
                 >
                   {updateProfileMutation.isPending ? (
                     <ActivityIndicator color="#ffffff" />
@@ -338,6 +418,53 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#ffffff",
     letterSpacing: 0.3,
+  },
+  imageSection: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  imageWrapper: {
+    position: "relative",
+  },
+  imageFrame: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: "#d7f0db",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f1f8f4",
+  },
+  profileImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+  },
+  editBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#4CAF50",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#ffffff",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  changePhotoText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#4CAF50",
+    fontWeight: "600",
   },
   stateContainer: {
     flex: 1,

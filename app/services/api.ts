@@ -72,6 +72,7 @@ export interface LoginCredentials {
 export interface SignupCredentials {
   name: string;
   email: string;
+  mobileNumber?: string;
   password: string;
   address: string;
   serviceablePincodes: string[];
@@ -93,23 +94,30 @@ export interface SignupResponse {
   message: string;
 }
 
-// User data structure (from /auth/me or other endpoints)
+// User data structure returned by GET /users/me (full DB document)
 export interface User {
-  id: string;
+  _id?: string;
+  id?: string;
   email: string;
   name: string;
   role: string;
   mobileNumber?: string;
-  phoneNumber?: string;
+  image?: string;
   address?: string;
   serviceablePincodes?: string[];
+  status?: string;
 }
 
 export interface UserProfileUpdate {
   name?: string;
   email?: string;
   mobileNumber?: string;
-  phoneNumber?: string;
+  image?: string;
+}
+
+export interface PresignedUploadResponse {
+  url: string;
+  key: string;
 }
 
 function shouldRetryProfileUpdate(error: unknown): boolean {
@@ -168,34 +176,10 @@ export async function updateUserProfile(
 
 export async function updateCurrentUserProfile(
   data: UserProfileUpdate,
-  userId?: string,
 ): Promise<User> {
-  try {
-    return await apiRequest("/users/me", {
-      method: "PUT",
-      body: JSON.stringify(data),
-      requiresAuth: true,
-    });
-  } catch (error) {
-    if (!shouldRetryProfileUpdate(error)) {
-      throw error;
-    }
-  }
-
-  try {
-    return await apiRequest("/users/me", {
-      method: "PATCH",
-      body: JSON.stringify(data),
-      requiresAuth: true,
-    });
-  } catch (error) {
-    if (!userId || !shouldRetryProfileUpdate(error)) {
-      throw error;
-    }
-  }
-
-  return apiRequest(`/users/${userId}`, {
-    method: "PUT",
+  // Backend exposes PATCH /users/update-me
+  return apiRequest("/users/update-me", {
+    method: "PATCH",
     body: JSON.stringify(data),
     requiresAuth: true,
   });
@@ -216,4 +200,36 @@ export async function createItem(data: any): Promise<any> {
     body: JSON.stringify(data),
     requiresAuth: true, // Token required
   });
+}
+
+// Example: Upload file to presigned URL
+export async function getPresignedUploadUrl(
+  fileName: string,
+  fileType: string,
+  folder = "users",
+): Promise<PresignedUploadResponse> {
+  return apiRequest("/s3/presigned-url", {
+    method: "POST",
+    body: JSON.stringify({ fileName, fileType, folder }),
+    requiresAuth: true,
+  });
+}
+
+export async function uploadFileToPresignedUrl(
+  uploadUrl: string,
+  fileUri: string,
+  fileType: string,
+): Promise<void> {
+  const response = await fetch(fileUri);
+  const blob = await response.blob();
+
+  const uploadResponse = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": fileType },
+    body: blob,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Image upload to storage failed");
+  }
 }
