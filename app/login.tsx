@@ -3,24 +3,23 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AuthCard from "../components/AuthCard";
-import LabeledTextInput from "../components/LabeledTextInput";
-import PrimaryButton from "../components/PrimaryButton";
 import { deliveryTheme } from "../constants/DeliveryTheme";
 import { useAuth } from "./contexts/AuthContext";
 import { getCurrentUser, loginApi } from "./services/api";
 
-const { colors, spacing } = deliveryTheme;
+const { colors } = deliveryTheme;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -47,7 +46,7 @@ export default function LoginScreen() {
         console.log("Could not fetch user data:", error);
       }
 
-      router.replace("/(tabs)");
+      router.replace("/myorders");
     },
     onError: (error: any) => {
       console.error("Login error:", error);
@@ -65,53 +64,61 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
         <LinearGradient
-          colors={[colors.bgTop, colors.bgMid, colors.bgBottom]}
-          style={styles.gradient}
+          colors={[colors.textPrimary, colors.accentDark, colors.accent]}
+          style={styles.bg}
         >
-          <View style={styles.content}>
-            {/* Compact header */}
-            <View style={styles.header}>
-              <Image
-                source={require("../assets/images/logo.png")}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.title}>Login</Text>
-              <Text style={styles.subtitle}>
-                Sign in to continue your journey
-              </Text>
+          <View style={styles.header}>
+            <Image
+              source={require("../assets/images/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+
+            <View style={styles.textContainer}>
+              <Text style={styles.headerTitle}>Welcome Back!</Text>
+              <Text style={styles.headerSubtitle}>Sign in to continue</Text>
             </View>
+          </View>
 
-            {/* Form Card */}
-            <AuthCard>
-              {/* Email Input */}
-              <LabeledTextInput
-                label="Email Address"
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!loginMutation.isPending}
-              />
+          <View style={styles.sheet}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.sheetContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor={colors.placeholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!loginMutation.isPending}
+                />
+              </View>
 
-              {/* Password Input */}
-              <LabeledTextInput
-                label="Password"
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!loginMutation.isPending}
-              />
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor={colors.placeholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  editable={!loginMutation.isPending}
+                />
+              </View>
 
-              {/* Forgot Password */}
               <TouchableOpacity
                 style={styles.forgotPassword}
                 onPress={() => router.push("/forgot-password")}
@@ -119,31 +126,27 @@ export default function LoginScreen() {
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              {/* Login Button */}
-              <PrimaryButton
-                title="Sign In"
+              <TouchableOpacity
                 onPress={handleLogin}
-                loading={loginMutation.isPending}
-              />
+                disabled={loginMutation.isPending}
+                style={styles.loginButton}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.loginButtonText}>
+                  {loginMutation.isPending ? "Please wait..." : "LOGIN"}
+                </Text>
+              </TouchableOpacity>
 
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Sign Up Link */}
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Don't have an account? </Text>
-                <TouchableOpacity
+                <Text
+                  style={styles.footerLink}
                   onPress={() => router.push("/signup")}
-                  disabled={loginMutation.isPending}
                 >
-                  <Text style={styles.linkText}>Sign Up</Text>
-                </TouchableOpacity>
+                  Register
+                </Text>
               </View>
-            </AuthCard>
+            </ScrollView>
           </View>
         </LinearGradient>
       </KeyboardAvoidingView>
@@ -152,81 +155,101 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
-  gradient: {
+  bg: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.xxl,
-    justifyContent: "center",
   },
   header: {
-    alignItems: "center",
-    marginBottom: spacing.xxl,
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    paddingTop: 100,
+    paddingBottom: 100,
   },
-  logoImage: {
-    width: 100,
-    height: 100,
+  logo: {
+    width: 90,
+    height: 90,
   },
-  title: {
-    fontSize: 30,
+  textContainer: {
+    flexDirection: "column",
+  },
+  headerTitle: {
+    fontSize: 36,
     fontWeight: "800",
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    letterSpacing: -0.5,
+    color: colors.white,
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 14,
-    color: colors.accent,
+    color: colors.whiteStrong,
     fontWeight: "500",
-    letterSpacing: 0.3,
+  },
+  sheet: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+  },
+  sheetContent: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  fieldBlock: {
+    marginBottom: 20,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginBottom: 8,
+    fontWeight: "500",
+  },
+  input: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+    fontSize: 15,
+    color: colors.textPrimary,
+    paddingBottom: 10,
+    paddingTop: 6,
   },
   forgotPassword: {
     alignSelf: "flex-end",
-    marginBottom: 20,
-    marginTop: -6,
+    marginTop: -8,
+    marginBottom: 16,
   },
   forgotPasswordText: {
-    color: colors.accent,
+    color: colors.accentDark,
     fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.divider,
-  },
-  dividerText: {
-    marginHorizontal: 14,
-    fontSize: 11,
-    color: colors.textMuted,
     fontWeight: "500",
-    textTransform: "uppercase",
-    letterSpacing: 1,
   },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
+  loginButton: {
+    marginTop: 8,
+    backgroundColor: colors.accentDark,
+    borderRadius: 999,
+    paddingVertical: 14,
     alignItems: "center",
   },
-  footerText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: "400",
-  },
-  linkText: {
-    color: colors.accent,
+  loginButtonText: {
+    color: colors.white,
     fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 0.3,
+    letterSpacing: 0.7,
+  },
+  footer: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  footerText: {
+    color: colors.slateText,
+    fontSize: 14,
+  },
+  footerLink: {
+    color: colors.accentDark,
+    fontSize: 14,
+    fontWeight: "700",
   },
 });

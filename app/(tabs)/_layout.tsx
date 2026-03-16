@@ -1,10 +1,8 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs, useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { Alert, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import { useAuth } from "../contexts/AuthContext";
 
 /* ================= ICON ================= */
@@ -30,25 +28,10 @@ export default function TabLayout() {
     }
   }, [router, token]);
 
-  /* ---------- LOGOUT ---------- */
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          await clearAuthToken();
-          router.replace("/signup");
-        },
-      },
-    ]);
-  };
-
   return (
     <Tabs
       screenOptions={{
-        headerShown: useClientOnlyValue(false, true),
+        headerShown: false,
 
         /* 🌿 PREMIUM TAB BAR THEME */
         tabBarActiveTintColor: "#4CAF50",
@@ -70,55 +53,18 @@ export default function TabLayout() {
           fontWeight: "600",
           letterSpacing: 0.3,
         },
-
-        /* 🌿 PREMIUM HEADER THEME */
-        headerStyle: {
-          backgroundColor: "#f8fffe",
-          elevation: 0,
-          shadowOpacity: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: "#e8f5e9",
-        },
-        headerTitleStyle: {
-          fontWeight: "800",
-          color: "#1a472a",
-          fontSize: 20,
-          letterSpacing: -0.3,
-        },
       }}
     >
-      {/* ================= HOME ================= */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-          headerRight: () => (
-            <Pressable onPress={handleLogout} style={{ marginRight: 16 }}>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="sign-out"
-                  size={20}
-                  color="#1a472a"
-                  style={{ opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          ),
-        }}
-      />
-
       {/* ================= MY ORDERS ================= */}
       <Tabs.Screen
         name="myorders"
         options={{
-          title: "My Orders",
+          title: "Orders",
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="list-alt" color={color} />
           ),
         }}
       />
-
       {/* ================= PROFILE ================= */}
       <Tabs.Screen
         name="profile"

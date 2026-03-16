@@ -53,7 +53,7 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           await clearAuthToken();
-          router.replace("/signup");
+          router.replace("/welcome");
         },
       },
     ]);

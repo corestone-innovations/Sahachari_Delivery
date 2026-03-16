@@ -91,8 +91,9 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack initialRouteName="welcome" screenOptions={{ headerShown: false }}>
         {/* Auth screens */}
+        <Stack.Screen name="welcome" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="login" />
         <Stack.Screen name="forgot-password" />

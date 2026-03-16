@@ -19,6 +19,13 @@ export const deliveryTheme = {
     placeholder: "#9ca3af",
     buttonLoading1: "#a5d6a7",
     buttonLoading2: "#81c784",
+    slateText: "#475569",
+    helperText: "#64748B",
+    whiteSoft: "rgba(255,255,255,0.72)",
+    whiteStrong: "rgba(255,255,255,0.88)",
+    whiteBorder: "rgba(255,255,255,0.45)",
+    whiteTint: "rgba(255,255,255,0.12)",
+    brandOverlay: "rgba(26,71,42,0.35)",
   },
   spacing: {
     xs: 6,
