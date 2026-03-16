@@ -1,26 +1,29 @@
-import { Text, View } from '@/components/Themed';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useQuery } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import { Text, View } from "@/components/Themed";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useQuery } from "@tanstack/react-query";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
   Alert,
+  Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-} from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { apiRequest } from '../services/api';
-import { RefreshControl } from "react-native";
-import { useState } from "react";
+} from "react-native";
+import { useAuth } from "../contexts/AuthContext";
+import { apiRequest } from "../services/api";
 /* ================= TYPES ================= */
 
 type UserProfile = {
   _id?: string;
   name?: string;
   email?: string;
+  mobileNumber?: string;
   role?: string;
+  image?: string;
+  status?: string;
 };
 
 /* ================= SCREEN ================= */
@@ -34,30 +37,30 @@ export default function ProfileScreen() {
     data: user,
     isLoading,
     isError,
-     refetch,
+    refetch,
   } = useQuery<UserProfile>({
-    queryKey: ['myProfile'],
-    queryFn: () => apiRequest('/users/me'),
+    queryKey: ["myProfile"],
+    queryFn: () => apiRequest("/users/me"),
     enabled: !!token,
   });
 
   /* ---------- LOGOUT ---------- */
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
       {
-        text: 'Logout',
-        style: 'destructive',
+        text: "Logout",
+        style: "destructive",
         onPress: async () => {
           await clearAuthToken();
-          router.replace('/signup');
+          router.replace("/welcome");
         },
       },
     ]);
   };
   /*refresh */
-    const [refreshing, setRefreshing] = useState(false);
-  
+  const [refreshing, setRefreshing] = useState(false);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await refetch();
@@ -68,36 +71,43 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={['#f8fffe', '#ffffff', '#f0fdf9']}
+      colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
       style={{ flex: 1 }}
     >
-<ScrollView
-  contentContainerStyle={styles.container}
-  showsVerticalScrollIndicator={false}
-  refreshControl={
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      colors={["#4CAF50"]}
-      tintColor="#4CAF50"
-    />
-  }
->        {/* ---------- HEADER ---------- */}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#4CAF50"]}
+            tintColor="#4CAF50"
+          />
+        }
+      >
+        {/* ---------- HEADER ---------- */}
         <View style={styles.header}>
           <LinearGradient
-            colors={['#7ed957', '#4CAF50', '#2e7d32']}
+            colors={["#7ed957", "#4CAF50", "#2e7d32"]}
             style={styles.avatarGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.avatarInner}>
-              <FontAwesome name="user" size={46} color="#FFFFFF" />
+            <View style={[styles.avatarInner, { overflow: "hidden" }]}>
+              {user?.image ? (
+                <Image
+                  source={{ uri: user.image }}
+                  style={{ width: "100%", height: "100%" }}
+                />
+              ) : (
+                <FontAwesome name="user" size={46} color="#FFFFFF" />
+              )}
             </View>
           </LinearGradient>
-          <Text style={styles.title}>{user?.name || 'User'}</Text>
-          <Text style={styles.subtitle}>{user?.email || 'Loading...'}</Text>
+          <Text style={styles.title}>{user?.name || "User"}</Text>
+          <Text style={styles.subtitle}>{user?.email || "Loading..."}</Text>
         </View>
-
         {/* ---------- PROFILE CARD ---------- */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -112,42 +122,65 @@ export default function ProfileScreen() {
             <InfoRow
               icon="user"
               label="Full Name"
-              value={user.name || 'User'}
+              value={user.name || "User"}
             />
             <Divider />
 
             <InfoRow
               icon="envelope"
               label="Email Address"
-              value={user.email || 'N/A'}
+              value={user.email || "N/A"}
             />
             <Divider />
 
             <InfoRow
-              icon="id-badge"
-              label="User ID"
-              value={user._id ? String(user._id).substring(0, 16) + '...' : 'N/A'}
+              icon="phone"
+              label="Mobile Number"
+              value={user.mobileNumber || "N/A"}
             />
             <Divider />
+
+            {/* <InfoRow
+              icon="id-badge"
+              label="User ID"
+              value={
+                user._id ? String(user._id).substring(0, 16) + "..." : "N/A"
+              }
+            />
+            <Divider /> */}
 
             <InfoRow
               icon="shield"
               label="Account Role"
-              value={user.role || 'N/A'}
+              value={user.role || "N/A"}
             />
           </View>
         )}
-
         {/* ---------- ACTIONS ---------- */}
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-          <ActionButton icon="edit" text="Edit Profile" />
-          <ActionButton icon="cog" text="Settings" />
-          <ActionButton icon="question-circle" text="Help & Support" />
-          <ActionButton icon="star" text="Rate the App" />
-        </View>
 
+          <ActionButton
+            icon="edit"
+            text="Edit Profile"
+            onPress={() => router.push("/edit-profile")}
+          />
+          <ActionButton
+            icon="cog"
+            text="Settings"
+            onPress={() => router.push("/settings")}
+          />
+          <ActionButton
+            icon="question-circle"
+            text="Help & Support"
+            onPress={() => router.push("/help-support")}
+          />
+          <ActionButton
+            icon="star"
+            text="Rate the App"
+            onPress={() => router.push("/rate-app")}
+          />
+        </View>
         {/* ---------- LOGOUT ---------- */}
         <TouchableOpacity
           style={styles.logoutButton}
@@ -157,7 +190,6 @@ export default function ProfileScreen() {
           <FontAwesome name="sign-out" size={18} color="#fff" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-
         <View style={styles.footer}>
           <Text style={styles.footerText}>Version 1.0.0</Text>
         </View>
@@ -173,7 +205,7 @@ function InfoRow({
   label,
   value,
 }: {
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
+  icon: React.ComponentProps<typeof FontAwesome>["name"];
   label: string;
   value: string;
 }) {
@@ -197,12 +229,18 @@ function Divider() {
 function ActionButton({
   icon,
   text,
+  onPress,
 }: {
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
+  icon: React.ComponentProps<typeof FontAwesome>["name"];
   text: string;
+  onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.actionButton} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={styles.actionButton}
+      activeOpacity={0.85}
+      onPress={onPress}
+    >
       <View style={styles.actionIconContainer}>
         <FontAwesome name={icon} size={18} color="#4CAF50" />
       </View>
@@ -221,7 +259,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
     marginBottom: 32,
   },
@@ -230,10 +268,10 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
-    shadowColor: '#4CAF50',
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -244,64 +282,64 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   title: {
     fontSize: 26,
-    fontWeight: '800',
-    color: '#1a472a',
+    fontWeight: "800",
+    color: "#1a472a",
     marginBottom: 4,
     letterSpacing: -0.5,
   },
 
   subtitle: {
     fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '500',
+    color: "#4CAF50",
+    fontWeight: "500",
   },
 
   loadingContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 40,
   },
 
   loadingText: {
     fontSize: 15,
-    color: '#4CAF50',
-    fontWeight: '500',
+    color: "#4CAF50",
+    fontWeight: "500",
   },
 
   errorContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 40,
   },
 
   errorText: {
     fontSize: 15,
-    color: '#dc2626',
-    fontWeight: '500',
+    color: "#dc2626",
+    fontWeight: "500",
   },
 
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     padding: 22,
-    shadowColor: '#4CAF50',
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 6,
     borderWidth: 1,
-    borderColor: '#e8f5e9',
+    borderColor: "#e8f5e9",
     marginBottom: 28,
   },
 
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 4,
   },
 
@@ -309,9 +347,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#f1f8f4',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#f1f8f4",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 14,
   },
 
@@ -321,22 +359,22 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     fontSize: 12,
-    color: '#66bb6a',
+    color: "#66bb6a",
     marginBottom: 3,
-    fontWeight: '500',
-    textTransform: 'uppercase',
+    fontWeight: "500",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
 
   infoValue: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1a472a',
+    fontWeight: "600",
+    color: "#1a472a",
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#e8f5e9',
+    backgroundColor: "#e8f5e9",
     marginVertical: 16,
   },
 
@@ -346,55 +384,55 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#2e7d32',
+    fontWeight: "700",
+    color: "#2e7d32",
     marginBottom: 14,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.8,
     paddingLeft: 4,
   },
 
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     marginBottom: 10,
-    shadowColor: '#4CAF50',
+    shadowColor: "#4CAF50",
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#e8f5e9',
+    borderColor: "#e8f5e9",
   },
 
   actionIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#f1f8f4',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#f1f8f4",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 14,
   },
 
   actionText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1a472a',
+    fontWeight: "600",
+    color: "#1a472a",
   },
 
   logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#dc2626',
+    flexDirection: "row",
+    backgroundColor: "#dc2626",
     borderRadius: 16,
     padding: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 10,
-    shadowColor: '#dc2626',
+    shadowColor: "#dc2626",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -402,20 +440,20 @@ const styles = StyleSheet.create({
   },
 
   logoutText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
 
   footer: {
     marginTop: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   footerText: {
     fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '500',
+    color: "#9ca3af",
+    fontWeight: "500",
   },
 });

@@ -3,10 +3,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
     Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -14,7 +15,10 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { deliveryTheme } from "../constants/DeliveryTheme";
 import { apiRequest } from "./services/api";
+
+const { colors } = deliveryTheme;
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -80,134 +84,99 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
         <LinearGradient
-          colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
-          style={styles.gradient}
+          colors={[colors.textPrimary, colors.accentDark, colors.accent]}
+          style={styles.bg}
         >
-          <View style={styles.content}>
-            {/* Compact header */}
-            <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <LinearGradient
-                  colors={["#7ed957", "#4CAF50", "#2e7d32"]}
-                  style={styles.logoGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.logoInner}>
-                    <Text style={styles.logoIcon}>S</Text>
-                  </View>
-                </LinearGradient>
-              </View>
-              <Text style={styles.title}>Change Password</Text>
-              <Text style={styles.subtitle}>
-                Enter your details to reset password
+          <View style={styles.header}>
+            <Image
+              source={require("../assets/images/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+
+            <View style={styles.textContainer}>
+              <Text style={styles.headerTitle}>Reset Password</Text>
+              <Text style={styles.headerSubtitle}>
+                Enter your email and new password
               </Text>
             </View>
+          </View>
 
-            {/* Form Card */}
-            <View style={styles.formCard}>
-              <View style={styles.formCardInner}>
-                {/* Email Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email Address</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your email"
-                      placeholderTextColor="#9ca3af"
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      editable={!changePasswordMutation.isPending}
-                    />
-                  </View>
-                </View>
-
-                {/* New Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>New Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter new password"
-                      placeholderTextColor="#9ca3af"
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      secureTextEntry
-                      editable={!changePasswordMutation.isPending}
-                    />
-                  </View>
-                </View>
-
-                {/* Confirm New Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Confirm New Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Re-enter new password"
-                      placeholderTextColor="#9ca3af"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry
-                      editable={!changePasswordMutation.isPending}
-                    />
-                  </View>
-                </View>
-
-                {/* Change Password Button */}
-                <TouchableOpacity
-                  onPress={handleChangePassword}
-                  disabled={changePasswordMutation.isPending}
-                  activeOpacity={0.85}
-                  style={styles.buttonContainer}
-                >
-                  <LinearGradient
-                    colors={
-                      changePasswordMutation.isPending
-                        ? ["#a5d6a7", "#81c784"]
-                        : ["#7ed957", "#4CAF50", "#2e7d32"]
-                    }
-                    style={styles.button}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    {changePasswordMutation.isPending ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.buttonText}>Change Password</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Divider */}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Back to Login Link */}
-                <View style={styles.footer}>
-                  <Text style={styles.footerText}>
-                    Remember your password?{" "}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => router.push("/login")}
-                    disabled={changePasswordMutation.isPending}
-                  >
-                    <Text style={styles.linkText}>Log In</Text>
-                  </TouchableOpacity>
-                </View>
+          <View style={styles.sheet}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sheetContent}
+            >
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor={colors.placeholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!changePasswordMutation.isPending}
+                />
               </View>
-            </View>
+
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>New Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter new password"
+                  placeholderTextColor={colors.placeholder}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                  editable={!changePasswordMutation.isPending}
+                />
+              </View>
+
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Confirm Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Re-enter new password"
+                  placeholderTextColor={colors.placeholder}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  editable={!changePasswordMutation.isPending}
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={handleChangePassword}
+                disabled={changePasswordMutation.isPending}
+                style={styles.actionButton}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.actionButtonText}>
+                  {changePasswordMutation.isPending
+                    ? "Please wait..."
+                    : "CHANGE PASSWORD"}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Remember your password? </Text>
+                <Text
+                  style={styles.footerLink}
+                  onPress={() => router.push("/login")}
+                >
+                  Log In
+                </Text>
+              </View>
+            </ScrollView>
           </View>
         </LinearGradient>
       </KeyboardAvoidingView>
@@ -216,158 +185,93 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
-  gradient: {
+  bg: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: "center",
   },
   header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
-  },
-  logoContainer: {
-    marginBottom: 14,
-  },
-  logoGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoInner: {
-    width: 66,
-    height: 66,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoIcon: {
-    fontSize: 40,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: -1,
-    textShadowColor: "rgba(0, 0, 0, 0.15)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#1a472a",
-    marginBottom: 6,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#4CAF50",
-    fontWeight: "500",
-    letterSpacing: 0.3,
-  },
-  formCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "#e8f5e9",
-  },
-  formCardInner: {
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 80,
+    paddingBottom: 80,
+  },
+  logo: {
+    width: 90,
+    height: 90,
+    marginRight: 16,
+  },
+  textContainer: {
+    flexDirection: "column",
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: colors.white,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: colors.whiteStrong,
+    fontWeight: "500",
+  },
+  sheet: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+  },
+  sheetContent: {
+    paddingHorizontal: 24,
+    paddingTop: 18,
     paddingBottom: 24,
   },
-  inputGroup: {
-    marginBottom: 16,
+  fieldBlock: {
+    marginBottom: 18,
   },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#2e7d32",
+  fieldLabel: {
+    fontSize: 14,
+    color: colors.textPrimary,
     marginBottom: 8,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  inputWrapper: {
-    backgroundColor: "#f1f8f4",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#c8e6c9",
+    fontWeight: "500",
   },
   input: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
     fontSize: 15,
-    color: "#1a472a",
-    fontWeight: "500",
+    color: colors.textPrimary,
+    paddingBottom: 10,
+    paddingTop: 6,
   },
-  buttonContainer: {
+  actionButton: {
     marginTop: 8,
-  },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 14,
+    backgroundColor: colors.accentDark,
+    borderRadius: 999,
+    paddingVertical: 14,
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  actionButtonText: {
+    color: colors.white,
+    fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 0.8,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e0e0e0",
-  },
-  dividerText: {
-    marginHorizontal: 14,
-    fontSize: 11,
-    color: "#9e9e9e",
-    fontWeight: "500",
-    textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 0.7,
   },
   footer: {
+    marginTop: 18,
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center",
   },
   footerText: {
-    color: "#757575",
+    color: colors.slateText,
     fontSize: 14,
-    fontWeight: "400",
   },
-  linkText: {
-    color: "#4CAF50",
+  footerLink: {
+    color: colors.accentDark,
     fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 0.3,
   },
 });

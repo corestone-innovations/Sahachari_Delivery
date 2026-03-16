@@ -3,19 +3,23 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { deliveryTheme } from "../constants/DeliveryTheme";
 import { useAuth } from "./contexts/AuthContext";
 import { getCurrentUser, loginApi } from "./services/api";
+
+const { colors } = deliveryTheme;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -42,7 +46,7 @@ export default function LoginScreen() {
         console.log("Could not fetch user data:", error);
       }
 
-      router.replace("/(tabs)");
+      router.replace("/myorders");
     },
     onError: (error: any) => {
       console.error("Login error:", error);
@@ -60,125 +64,89 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
         <LinearGradient
-          colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
-          style={styles.gradient}
+          colors={[colors.textPrimary, colors.accentDark, colors.accent]}
+          style={styles.bg}
         >
-          <View style={styles.content}>
-            {/* Compact header */}
-            <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <LinearGradient
-                  colors={["#7ed957", "#4CAF50", "#2e7d32"]}
-                  style={styles.logoGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.logoInner}>
-                    <Text style={styles.logoIcon}>S</Text>
-                  </View>
-                </LinearGradient>
-              </View>
-              <Text style={styles.title}>Login</Text>
-              <Text style={styles.subtitle}>
-                Sign in to continue your journey
-              </Text>
+          <View style={styles.header}>
+            <Image
+              source={require("../assets/images/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+
+            <View style={styles.textContainer}>
+              <Text style={styles.headerTitle}>Welcome Back!</Text>
+              <Text style={styles.headerSubtitle}>Sign in to continue</Text>
             </View>
+          </View>
 
-            {/* Form Card */}
-            <View style={styles.formCard}>
-              <View style={styles.formCardInner}>
-                {/* Email Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email Address</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your email"
-                      placeholderTextColor="#9ca3af"
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      editable={!loginMutation.isPending}
-                    />
-                  </View>
-                </View>
-
-                {/* Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your password"
-                      placeholderTextColor="#9ca3af"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry
-                      editable={!loginMutation.isPending}
-                    />
-                  </View>
-                </View>
-
-                {/* Forgot Password */}
-                <TouchableOpacity
-                  style={styles.forgotPassword}
-                  onPress={() => router.push("/forgot-password")}
-                >
-                  <Text style={styles.forgotPasswordText}>
-                    Forgot Password?
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Login Button */}
-                <TouchableOpacity
-                  onPress={handleLogin}
-                  disabled={loginMutation.isPending}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={
-                      loginMutation.isPending
-                        ? ["#a5d6a7", "#81c784"]
-                        : ["#7ed957", "#4CAF50", "#2e7d32"]
-                    }
-                    style={styles.button}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    {loginMutation.isPending ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.buttonText}>Sign In</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Divider */}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Sign Up Link */}
-                <View style={styles.footer}>
-                  <Text style={styles.footerText}>Don't have an account? </Text>
-                  <TouchableOpacity
-                    onPress={() => router.push("/signup")}
-                    disabled={loginMutation.isPending}
-                  >
-                    <Text style={styles.linkText}>Sign Up</Text>
-                  </TouchableOpacity>
-                </View>
+          <View style={styles.sheet}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.sheetContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor={colors.placeholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!loginMutation.isPending}
+                />
               </View>
-            </View>
+
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor={colors.placeholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  editable={!loginMutation.isPending}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={() => router.push("/forgot-password")}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleLogin}
+                disabled={loginMutation.isPending}
+                style={styles.loginButton}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.loginButtonText}>
+                  {loginMutation.isPending ? "Please wait..." : "LOGIN"}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Don't have an account? </Text>
+                <Text
+                  style={styles.footerLink}
+                  onPress={() => router.push("/signup")}
+                >
+                  Register
+                </Text>
+              </View>
+            </ScrollView>
           </View>
         </LinearGradient>
       </KeyboardAvoidingView>
@@ -187,166 +155,101 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
-  gradient: {
+  bg: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: "center",
   },
   header: {
-    alignItems: "center",
-    marginBottom: 24,
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    paddingTop: 100,
+    paddingBottom: 100,
   },
-  logoContainer: {
-    marginBottom: 14,
+  logo: {
+    width: 90,
+    height: 90,
   },
-  logoGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+  textContainer: {
+    flexDirection: "column",
   },
-  logoInner: {
-    width: 66,
-    height: 66,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoIcon: {
-    fontSize: 40,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: -1,
-    textShadowColor: "rgba(0, 0, 0, 0.15)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  title: {
-    fontSize: 30,
+  headerTitle: {
+    fontSize: 36,
     fontWeight: "800",
-    color: "#1a472a",
-    marginBottom: 6,
-    letterSpacing: -0.5,
+    color: colors.white,
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 14,
-    color: "#4CAF50",
+    color: colors.whiteStrong,
     fontWeight: "500",
-    letterSpacing: 0.3,
   },
-  formCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "#e8f5e9",
+  sheet: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
   },
-  formCardInner: {
+  sheetContent: {
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 20,
     paddingBottom: 24,
   },
-  inputGroup: {
-    marginBottom: 16,
+  fieldBlock: {
+    marginBottom: 20,
   },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#2e7d32",
+  fieldLabel: {
+    fontSize: 14,
+    color: colors.textPrimary,
     marginBottom: 8,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  inputWrapper: {
-    backgroundColor: "#f1f8f4",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#c8e6c9",
+    fontWeight: "500",
   },
   input: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
     fontSize: 15,
-    color: "#1a472a",
-    fontWeight: "500",
+    color: colors.textPrimary,
+    paddingBottom: 10,
+    paddingTop: 6,
   },
   forgotPassword: {
     alignSelf: "flex-end",
-    marginBottom: 20,
-    marginTop: -6,
+    marginTop: -8,
+    marginBottom: 16,
   },
   forgotPasswordText: {
-    color: "#4CAF50",
+    color: colors.accentDark,
     fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e0e0e0",
-  },
-  dividerText: {
-    marginHorizontal: 14,
-    fontSize: 11,
-    color: "#9e9e9e",
     fontWeight: "500",
-    textTransform: "uppercase",
-    letterSpacing: 1,
+  },
+  loginButton: {
+    marginTop: 8,
+    backgroundColor: colors.accentDark,
+    borderRadius: 999,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  loginButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.7,
   },
   footer: {
+    marginTop: 18,
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center",
   },
   footerText: {
-    color: "#757575",
+    color: colors.slateText,
     fontSize: 14,
-    fontWeight: "400",
   },
-  linkText: {
-    color: "#4CAF50",
+  footerLink: {
+    color: colors.accentDark,
     fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 0.3,
   },
 });
