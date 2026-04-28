@@ -94,26 +94,33 @@ interface PaymentResponse {
 /*payment part*/
 const [showQR, setShowQR] = useState(false);
 const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-const [payment, setPayment] = useState<any>(null);
+const [payment, setPayment] = useState<PaymentResponse | null>(null);
+
 const createPayment = async (order: Order) => {
   try {
-   const res = await apiRequest('/payment-transactions', {
-  method: 'POST',
-  body: JSON.stringify({
-    paymentRs: order.totalAmount,
-    upiId: 'admin@okhdfcbank',
-    orderId: order._id,
-  }),
-}) as PaymentResponse;
+    // ✅ IMPORTANT: validate before API call
+    if (!order.checkoutId) {
+      return Alert.alert('Error', 'Checkout ID missing in order');
+    }
 
-if (!res?.checkoutId) {
-  return Alert.alert('Error', 'Payment init failed');
-}
-   
+    const res = await apiRequest('/payment-transactions', {
+      method: 'POST',
+      body: JSON.stringify({
+        paymentRs: order.totalAmount,
+        upiId: 'vinayaksukhalal-1@okhdfcbank',
+        checkoutId: order.checkoutId, // ✅ safe now
+      }),
+    }) as PaymentResponse;
+
+    // ✅ extra safety
+    if (!res?.checkoutId) {
+      return Alert.alert('Error', 'Payment init failed');
+    }
 
     setPayment(res);
     setSelectedOrder(order);
     setShowQR(true);
+
   } catch (err: any) {
     Alert.alert('Error', err.message);
   }
@@ -305,7 +312,7 @@ if (!res?.checkoutId) {
       {payment && (
         <>
           <QRCode
-               value={`upi://pay?pa=admin@okhdfcbank&pn=Admin&am=${payment.paymentRs}&cu=INR&tr=${payment.checkoutId}`}            size={200}
+  value={`upi://pay?pa=${payment.upiId}&pn=Vinayak&am=${payment.paymentRs}&cu=INR&tr=${payment.checkoutId}`}
           />
 
           <Text style={styles.amountText}>
