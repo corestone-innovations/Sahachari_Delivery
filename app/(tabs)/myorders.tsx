@@ -16,6 +16,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
 import { RefreshControl } from "react-native";
 import { useState } from "react";
+import QRCode from 'react-native-qrcode-svg';
+import { Modal } from 'react-native';
 /* ================= TYPES ================= */
 
 type OrderStatus =
@@ -28,6 +30,7 @@ interface Order {
   _id: string;
   status: OrderStatus;
   totalAmount: number;
+ checkoutId?: string;// 
   storeId?: { name: string };
   deliveryAddress?: { street: string; city: string };
 }
@@ -82,8 +85,40 @@ const onRefresh = async () => {
   await refetch();
   setRefreshing(false);
 };
+interface PaymentResponse {
+  checkoutId: string;   // ✅ MUST be here
+  paymentRs: number;
+  status?: string;
+  upiId?: string;
+}
+/*payment part*/
+const [showQR, setShowQR] = useState(false);
+const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+const [payment, setPayment] = useState<any>(null);
+const createPayment = async (order: Order) => {
+  try {
+   const res = await apiRequest('/payment-transactions', {
+  method: 'POST',
+  body: JSON.stringify({
+    paymentRs: order.totalAmount,
+    upiId: 'admin@okhdfcbank',
+    orderId: order._id,
+  }),
+}) as PaymentResponse;
 
-  /* ---------- ACTION BUTTONS ---------- */
+if (!res?.checkoutId) {
+  return Alert.alert('Error', 'Payment init failed');
+}
+   
+
+    setPayment(res);
+    setSelectedOrder(order);
+    setShowQR(true);
+  } catch (err: any) {
+    Alert.alert('Error', err.message);
+  }
+};
+/* ---------- ACTION BUTTONS ---------- */
   const renderActions = (job: Order) => {
     if (job.status === 'ACCEPTED') {
       return (
@@ -112,12 +147,7 @@ const onRefresh = async () => {
       return (
         <>
           <TouchableOpacity
-            onPress={() =>
-              statusMutation.mutate({
-                jobId: job._id,
-                action: 'deliver',
-              })
-            }
+            onPress={() => createPayment(job)}
             activeOpacity={0.85}
           >
             <LinearGradient
@@ -267,6 +297,64 @@ const onRefresh = async () => {
           </View>
         )}
       </ScrollView>
+      <Modal visible={showQR} transparent animationType="slide">
+  <View style={styles.modalContainer}>
+    <View style={styles.modalCard}>
+      <Text style={styles.modalTitle}>Collect Payment</Text>
+
+      {payment && (
+        <>
+          <QRCode
+               value={`upi://pay?pa=admin@okhdfcbank&pn=Admin&am=${payment.paymentRs}&cu=INR&tr=${payment.checkoutId}`}            size={200}
+          />
+
+          <Text style={styles.amountText}>
+            ₹{payment.paymentRs}
+          </Text>
+
+          <Text style={{ marginTop: 10, fontSize: 12 }}>
+            Ask customer to scan & pay
+          </Text>
+
+          {/* TEMP CONFIRM BUTTON */}
+          <TouchableOpacity
+  style={styles.confirmButton}
+  onPress={async () => {
+    try {
+      if (!selectedOrder || !payment?.checkoutId) {
+        return Alert.alert('Error', 'Invalid payment');
+      }
+
+      await apiRequest(
+        `/payment-transactions/${payment.checkoutId}/status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'SUCCESS' }),
+        }
+      );
+
+      statusMutation.mutate({
+        jobId: selectedOrder._id,
+        action: 'deliver',
+      });
+
+      setShowQR(false);
+      setPayment(null);
+      setSelectedOrder(null);
+
+      Alert.alert('Success', 'Payment received & order delivered');
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  }}
+>
+  <Text style={styles.buttonText}>Payment Received</Text>
+</TouchableOpacity>
+        </>
+      )}
+    </View>
+  </View>
+</Modal>
     </LinearGradient>
   );
 }
@@ -497,4 +585,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
+  modalContainer: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+modalCard: {
+  backgroundColor: '#fff',
+  padding: 24,
+  borderRadius: 16,
+  alignItems: 'center',
+  width: '80%',
+},
+
+modalTitle: {
+  fontSize: 18,
+  fontWeight: '700',
+  marginBottom: 16,
+},
+
+amountText: {
+  marginTop: 12,
+  fontSize: 20,
+  fontWeight: '700',
+},
+
+confirmButton: {
+  marginTop: 20,
+  backgroundColor: '#4CAF50',
+  padding: 14,
+  borderRadius: 10,
+  width: '100%',
+  alignItems: 'center',
+},
 });
