@@ -25,7 +25,7 @@ export default function TabLayout() {
   const router = useRouter();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
-
+  const headerShown = useClientOnlyValue(false, true);
   /* ---------- PROTECT ROUTES & PREVENT BACK-EXIT LOGOUT ---------- */
   useEffect(() => {
     // 1. Wait until the AuthContext has finished checking AsyncStorage
@@ -85,7 +85,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: useClientOnlyValue(false, true),
+        headerShown,
 
         /* 🌿 PREMIUM TAB BAR THEME */
         tabBarActiveTintColor: "#4CAF50",
