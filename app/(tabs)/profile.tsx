@@ -1,19 +1,22 @@
 import { Text, View } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  RefreshControl,
+  Modal,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../services/api';
-import { RefreshControl } from "react-native";
-import { useState } from "react";
+
 /* ================= TYPES ================= */
 
 type UserProfile = {
@@ -21,193 +24,164 @@ type UserProfile = {
   name?: string;
   email?: string;
   role?: string;
+  address?: string;
+  mobileNumber?: string;
 };
+
+type EditableField = 'address' | 'mobileNumber';
 
 /* ================= SCREEN ================= */
 
 export default function ProfileScreen() {
   const { token, clearAuthToken } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingField, setEditingField] = useState<EditableField | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   /* ---------- FETCH PROFILE ---------- */
-  const {
-    data: user,
-    isLoading,
-    isError,
-     refetch,
-  } = useQuery<UserProfile>({
+  const { data: user, isLoading, refetch } = useQuery<UserProfile>({
     queryKey: ['myProfile'],
     queryFn: () => apiRequest('/users/me'),
     enabled: !!token,
   });
 
-  /* ---------- LOGOUT ---------- */
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await clearAuthToken();
-          router.replace('/signup');
-        },
-      },
-    ]);
-  };
-  /*refresh */
-    const [refreshing, setRefreshing] = useState(false);
-  
+  /* ---------- UPDATE MUTATION ---------- */
+  const updateMutation = useMutation({
+    mutationFn: (updateData: { [key: string]: string }) => 
+      apiRequest('/users/update-me', {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+      setEditModalVisible(false);
+      Alert.alert('Success', 'Profile updated!');
+    },
+    onError: (error: any) => {
+      Alert.alert('Update Failed', error.message || 'Something went wrong');
+    }
+  });
+
   const onRefresh = async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
   };
 
-  /* ================= UI ================= */
+  const openEdit = (field: EditableField, currentVal: string = '') => {
+    setEditingField(field);
+    setEditValue(currentVal);
+    setEditModalVisible(true);
+  };
 
   return (
-    <LinearGradient
-      colors={['#f8fffe', '#ffffff', '#f0fdf9']}
-      style={{ flex: 1 }}
-    >
-<ScrollView
-  contentContainerStyle={styles.container}
-  showsVerticalScrollIndicator={false}
-  refreshControl={
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      colors={["#4CAF50"]}
-      tintColor="#4CAF50"
-    />
-  }
->        {/* ---------- HEADER ---------- */}
-        <View style={styles.header}>
-          <LinearGradient
-            colors={['#7ed957', '#4CAF50', '#2e7d32']}
-            style={styles.avatarGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.avatarInner}>
-              <FontAwesome name="user" size={46} color="#FFFFFF" />
-            </View>
+    <LinearGradient colors={['#f8fffe', '#ffffff', '#f0fdf9']} style={{ flex: 1 }}>
+      <ScrollView 
+        contentContainerStyle={styles.container} 
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#4CAF50"]} />}
+      >
+        
+        {/* ---------- SECTION 1: PROFILE OVERVIEW (VIEW ONLY) ---------- */}
+        <View style={styles.profileHeaderCard}>
+          <LinearGradient colors={['#7ed957', '#4CAF50']} style={styles.avatarGradient}>
+            <FontAwesome name="user" size={40} color="#FFFFFF" />
           </LinearGradient>
-          <Text style={styles.title}>{user?.name || 'User'}</Text>
-          <Text style={styles.subtitle}>{user?.email || 'Loading...'}</Text>
+          
+          <View style={styles.headerInfo}>
+            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>{user?.role?.toUpperCase() || 'MEMBER'}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* ---------- PROFILE CARD ---------- */}
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading profile...</Text>
-          </View>
-        ) : isError || !user ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Failed to load profile</Text>
-          </View>
-        ) : (
-          <View style={styles.card}>
-            <InfoRow
-              icon="user"
-              label="Full Name"
-              value={user.name || 'User'}
-            />
-            <Divider />
-
-            <InfoRow
-              icon="envelope"
-              label="Email Address"
-              value={user.email || 'N/A'}
-            />
-            <Divider />
-
-            <InfoRow
-              icon="id-badge"
-              label="User ID"
-              value={user._id ? String(user._id).substring(0, 16) + '...' : 'N/A'}
-            />
-            <Divider />
-
-            <InfoRow
-              icon="shield"
-              label="Account Role"
-              value={user.role || 'N/A'}
-            />
-          </View>
-        )}
-
-        {/* ---------- ACTIONS ---------- */}
-        <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-          <ActionButton icon="edit" text="Edit Profile" />
-          <ActionButton icon="cog" text="Settings" />
-          <ActionButton icon="question-circle" text="Help & Support" />
-          <ActionButton icon="star" text="Rate the App" />
+        {/* ---------- SECTION 2: EDITABLE DETAILS ---------- */}
+        <Text style={styles.sectionLabel}>Contact Information</Text>
+        <View style={styles.detailsCard}>
+          <EditableRow 
+            icon="phone" 
+            label="Mobile Number" 
+            value={user?.mobileNumber || 'Not set'} 
+            onPress={() => openEdit('mobileNumber', user?.mobileNumber)}
+          />
+          <View style={styles.divider} />
+          <EditableRow 
+            icon="map-marker" 
+            label="Primary Address" 
+            value={user?.address || 'Add your address'} 
+            onPress={() => openEdit('address', user?.address)}
+          />
         </View>
 
         {/* ---------- LOGOUT ---------- */}
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          activeOpacity={0.85}
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={() => Alert.alert('Logout', 'Are you sure?', [
+            { text: 'Cancel' },
+            { text: 'Logout', style: 'destructive', onPress: async () => {
+                await clearAuthToken();
+                router.replace('/signup');
+            }}
+          ])}
         >
-          <FontAwesome name="sign-out" size={18} color="#fff" />
-          <Text style={styles.logoutText}>Logout</Text>
+          <FontAwesome name="sign-out" size={18} color="#dc2626" />
+          <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Version 1.0.0</Text>
-        </View>
       </ScrollView>
+
+      {/* EDIT MODAL */}
+      <Modal visible={editModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update {editingField === 'mobileNumber' ? 'Mobile' : 'Address'}</Text>
+            
+            <TextInput
+              style={[styles.modalInput, editingField === 'address' && { minHeight: 100, textAlignVertical: 'top' }]}
+              value={editValue}
+              onChangeText={setEditValue}
+              placeholder="Type here..."
+              multiline={editingField === 'address'}
+              keyboardType={editingField === 'mobileNumber' ? 'phone-pad' : 'default'}
+              autoFocus
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModalVisible(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.saveBtn} 
+                onPress={() => editingField && updateMutation.mutate({ [editingField]: editValue })}
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
 
 /* ================= COMPONENTS ================= */
 
-function InfoRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
-  label: string;
-  value: string;
-}) {
+function EditableRow({ icon, label, value, onPress }: any) {
   return (
-    <View style={styles.infoRow}>
-      <View style={styles.iconContainer}>
-        <FontAwesome name={icon} size={18} color="#4CAF50" />
+    <TouchableOpacity style={styles.infoRow} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.iconBox}>
+        <FontAwesome name={icon} size={16} color="#4CAF50" />
       </View>
-      <View style={styles.infoContent}>
+      <View style={{ flex: 1 }}>
         <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value}</Text>
+        <Text style={styles.infoValue} numberOfLines={2}>{value}</Text>
       </View>
-    </View>
-  );
-}
-
-function Divider() {
-  return <View style={styles.divider} />;
-}
-
-function ActionButton({
-  icon,
-  text,
-}: {
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
-  text: string;
-}) {
-  return (
-    <TouchableOpacity style={styles.actionButton} activeOpacity={0.85}>
-      <View style={styles.actionIconContainer}>
-        <FontAwesome name={icon} size={18} color="#4CAF50" />
-      </View>
-      <Text style={styles.actionText}>{text}</Text>
-      <FontAwesome name="chevron-right" size={14} color="#9ca3af" />
+      <FontAwesome name="angle-right" size={20} color="#cbd5e1" />
     </TouchableOpacity>
   );
 }
@@ -215,207 +189,82 @@ function ActionButton({
 /* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-
-  header: {
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 32,
-  },
-
-  avatarGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-
-  avatarInner: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#1a472a',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-
-  loadingText: {
-    fontSize: 15,
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-
-  errorContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-
-  errorText: {
-    fontSize: 15,
-    color: '#dc2626',
-    fontWeight: '500',
-  },
-
-  card: {
+  container: { padding: 20, paddingTop: 40 },
+  
+  // Header Card (View Only)
+  profileHeaderCard: {
+    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    padding: 22,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 30,
+    elevation: 4,
     shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: '#e8f5e9',
-    marginBottom: 28,
-  },
-
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#f1f8f4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-
-  infoContent: {
-    flex: 1,
-  },
-
-  infoLabel: {
-    fontSize: 12,
-    color: '#66bb6a',
-    marginBottom: 3,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a472a',
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: '#e8f5e9',
-    marginVertical: 16,
-  },
-
-  actionsSection: {
-    marginBottom: 28,
-  },
-
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#2e7d32',
-    marginBottom: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    paddingLeft: 4,
-  },
-
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 10,
-    shadowColor: '#4CAF50',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0fdf9'
+  },
+  avatarGradient: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20
+  },
+  headerInfo: { flex: 1 },
+  userName: { fontSize: 22, fontWeight: '800', color: '#1a472a' },
+  userEmail: { fontSize: 14, color: '#64748b', marginTop: 2 },
+  roleBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f1f8f4',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 8
+  },
+  roleText: { fontSize: 10, fontWeight: '700', color: '#4CAF50', letterSpacing: 0.5 },
+
+  // Details Card (Editable)
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#4CAF50', marginBottom: 12, marginLeft: 5, textTransform: 'uppercase' },
+  detailsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    elevation: 2,
     borderWidth: 1,
     borderColor: '#e8f5e9',
+    marginBottom: 30
   },
+  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#f1f8f4', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  infoLabel: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
+  infoValue: { fontSize: 15, fontWeight: '600', color: '#1e293b', marginTop: 2 },
+  divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 12 },
 
-  actionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#f1f8f4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-
-  actionText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a472a',
-  },
-
+  // Buttons
   logoutButton: {
     flexDirection: 'row',
-    backgroundColor: '#dc2626',
-    borderRadius: 16,
-    padding: 18,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-    shadowColor: '#dc2626',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
+    padding: 15,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+    gap: 10
   },
+  logoutText: { color: '#dc2626', fontWeight: '700', fontSize: 15 },
 
-  logoutText: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-
-  footer: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-
-  footerText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '500',
-  },
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, paddingBottom: 40 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#1a472a', marginBottom: 20 },
+  modalInput: { backgroundColor: '#f8fafc', borderRadius: 15, padding: 15, fontSize: 16, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 20 },
+  modalButtons: { flexDirection: 'row', gap: 12 },
+  cancelBtn: { flex: 1, padding: 16, alignItems: 'center', borderRadius: 12, backgroundColor: '#f1f5f9' },
+  cancelBtnText: { color: '#64748b', fontWeight: '600' },
+  saveBtn: { flex: 2, padding: 16, alignItems: 'center', borderRadius: 12, backgroundColor: '#4CAF50' },
+  saveBtnText: { color: '#fff', fontWeight: '700' }
 });

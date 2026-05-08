@@ -1,7 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Tabs, useRouter } from "expo-router";
-import React, { useEffect } from "react";
-import { Alert, Pressable } from "react-native";
+import { Tabs, useRouter, useSegments } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Alert, Pressable, BackHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
@@ -21,16 +21,48 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { token, clearAuthToken } = useAuth();
+  const { token, clearAuthToken, isLoading } = useAuth(); // Added isLoading from context
   const router = useRouter();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
 
-  /* ---------- PROTECT ROUTES ---------- */
+  /* ---------- PROTECT ROUTES & PREVENT BACK-EXIT LOGOUT ---------- */
   useEffect(() => {
+    // 1. Wait until the AuthContext has finished checking AsyncStorage
+    if (isLoading) return;
+
+    // 2. Only redirect to signup if we are officially 'logged out' (token is null)
     if (!token) {
       router.replace("/signup");
     }
-  }, [token]);
+  }, [token, isLoading]);
+
+  /* ---------- ANDROID BACK BUTTON HANDLING ---------- */
+  useEffect(() => {
+    const onBackPress = () => {
+      // 1. Cast the last segment as a generic string to bypass strict routing types
+      const currentRoute = segments[segments.length - 1] as string;
+      
+      // 2. Check for "index" (Home) or if we are at the top level
+      const isHome = currentRoute === "index" || segments.length <= 1;
+
+      if (isHome) {
+        Alert.alert("Exit App", "Do you want to exit the application?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "Exit", onPress: () => BackHandler.exitApp() },
+        ]);
+        return true; 
+      }
+      return false; 
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress
+    );
+
+    return () => subscription.remove();
+  }, [segments]);
 
   /* ---------- LOGOUT ---------- */
   const handleLogout = () => {
@@ -46,6 +78,9 @@ export default function TabLayout() {
       },
     ]);
   };
+
+  // Prevent flickering while checking for the token
+  if (isLoading) return null;
 
   return (
     <Tabs
