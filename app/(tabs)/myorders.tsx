@@ -1,23 +1,32 @@
-import { Text, View } from '@/components/Themed';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+
 import { LinearGradient } from 'expo-linear-gradient';
+
+import React, { useState } from 'react';
+
+import QRCode from 'react-native-qrcode-svg';
+
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
+  FlatList,
+  Modal,
+  RefreshControl,
+  StatusBar,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
+
 import { apiRequest } from '../services/api';
-import { RefreshControl } from "react-native";
-import { useState } from "react";
-import QRCode from 'react-native-qrcode-svg';
-import { Modal } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+
 /* ================= TYPES ================= */
 
 type OrderStatus =
@@ -26,34 +35,126 @@ type OrderStatus =
   | 'DELIVERED'
   | 'FAILED';
 
+interface Store {
+  name: string;
+  address?: string;
+}
+
+interface DeliveryAddress {
+  street: string;
+  city: string;
+  zipCode?: string;
+  phone?: string;
+  notes?: string;
+}
+
+interface User {
+  name: string;
+  email: string;
+}
+
 interface Order {
   _id: string;
+  checkoutId?: string;
   status: OrderStatus;
   totalAmount: number;
- checkoutId?: string;// 
-  storeId?: { name: string };
-  deliveryAddress?: { street: string; city: string };
+
+  userId?: User;
+
+  storeId?: Store;
+
+  deliveryAddress?: DeliveryAddress;
+
+  pickupAddress?: string;
 }
+
+interface PaymentResponse {
+  checkoutId: string;
+  paymentRs: number;
+  status?: string;
+  upiId?: string;
+}
+
+/* ================= STATUS ================= */
+
+const STATUS_STEPS = [
+  'ACCEPTED',
+  'PICKED_UP',
+  'DELIVERED',
+];
+
+const STATUS_CONFIG = {
+  ACCEPTED: {
+    color: '#f59e0b',
+    icon: 'check-circle',
+    label: 'Accepted',
+  },
+
+  PICKED_UP: {
+    color: '#8b5cf6',
+    icon: 'motorcycle',
+    label: 'Picked Up',
+  },
+
+  DELIVERED: {
+    color: '#16a34a',
+    icon: 'check-circle',
+    label: 'Delivered',
+  },
+
+  FAILED: {
+    color: '#dc2626',
+    icon: 'times-circle',
+    label: 'Failed',
+  },
+};
 
 /* ================= SCREEN ================= */
 
-export default function MyOrdersScreen() {
+export default function DeliveryOrdersScreen() {
   const { token } = useAuth();
+
   const queryClient = useQueryClient();
 
-  /* ---------- FETCH MY ORDERS ---------- */
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [showQR, setShowQR] =
+    useState(false);
+
+  const [selectedOrder, setSelectedOrder] =
+    useState<Order | null>(null);
+
+  const [payment, setPayment] =
+    useState<PaymentResponse | null>(null);
+
+  /* ================= FETCH ORDERS ================= */
+
   const {
-    data: myJobs,
+    data: orders,
     isLoading,
-    isError,
-     refetch,
+    refetch,
   } = useQuery<Order[]>({
     queryKey: ['myJobs'],
-    queryFn: () => apiRequest('/delivery/orders?mine=true'),
+
+    queryFn: () =>
+      apiRequest('/delivery/orders?mine=true'),
+
     enabled: !!token,
   });
 
-  /* ---------- STATUS MUTATION ---------- */
+  /* ================= REFRESH ================= */
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+
+    await refetch();
+
+    setRefreshing(false);
+  };
+
+  /* ================= STATUS MUTATION ================= */
+
   const statusMutation = useMutation({
     mutationFn: ({
       jobId,
@@ -62,133 +163,164 @@ export default function MyOrdersScreen() {
       jobId: string;
       action: 'pickup' | 'deliver' | 'fail';
     }) =>
-      apiRequest(`/delivery/orders/${jobId}/${action}`, {
-        method: 'POST',
-      }),
+      apiRequest(
+        `/delivery/orders/${jobId}/${action}`,
+        {
+          method: 'POST',
+        }
+      ),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myJobs'] });
+      queryClient.invalidateQueries({
+        queryKey: ['myJobs'],
+      });
     },
 
     onError: (error: any) => {
       Alert.alert(
         'Error',
-        error?.message || 'Failed to update order',
+        error?.message ||
+          'Failed to update order'
       );
     },
   });
-  /*refresh */
-  const [refreshing, setRefreshing] = useState(false);
 
-const onRefresh = async () => {
-  setRefreshing(true);
-  await refetch();
-  setRefreshing(false);
-};
-interface PaymentResponse {
-  checkoutId: string;   // ✅ MUST be here
-  paymentRs: number;
-  status?: string;
-  upiId?: string;
-}
-/*payment part*/
-const [showQR, setShowQR] = useState(false);
-const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-const [payment, setPayment] = useState<PaymentResponse | null>(null);
+  /* ================= PAYMENT ================= */
 
-const createPayment = async (order: Order) => {
-  try {
-    // ✅ IMPORTANT: validate before API call
-    if (!order.checkoutId) {
-      return Alert.alert('Error', 'Checkout ID missing in order');
+  const createPayment = async (
+    order: Order
+  ) => {
+    try {
+      if (!order.checkoutId) {
+        return Alert.alert(
+          'Error',
+          'Checkout ID missing'
+        );
+      }
+
+      const res = (await apiRequest(
+        '/payment-transactions',
+        {
+          method: 'POST',
+
+          body: JSON.stringify({
+            paymentRs: order.totalAmount,
+
+            upiId:
+              'vinayaksukhalal-1@okhdfcbank',
+
+            checkoutId: order.checkoutId,
+          }),
+        }
+      )) as PaymentResponse;
+
+      setPayment(res);
+
+      setSelectedOrder(order);
+
+      setShowQR(true);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
+  /* ================= HELPERS ================= */
+
+  const getCurrentStepIndex = (
+    status: string
+  ) => {
+    if (status === 'FAILED') {
+      return -1;
     }
 
-    const res = await apiRequest('/payment-transactions', {
-      method: 'POST',
-      body: JSON.stringify({
-        paymentRs: order.totalAmount,
-        upiId: 'vinayaksukhalal-1@okhdfcbank',
-        checkoutId: order.checkoutId, // ✅ safe now
-      }),
-    }) as PaymentResponse;
+    return STATUS_STEPS.indexOf(status);
+  };
 
-    // ✅ extra safety
-    if (!res?.checkoutId) {
-      return Alert.alert('Error', 'Payment init failed');
-    }
+  /* ================= ACTION BUTTONS ================= */
 
-    setPayment(res);
-    setSelectedOrder(order);
-    setShowQR(true);
-
-  } catch (err: any) {
-    Alert.alert('Error', err.message);
-  }
-};
-/* ---------- ACTION BUTTONS ---------- */
-  const renderActions = (job: Order) => {
-    if (job.status === 'ACCEPTED') {
+  const renderActionButtons = (
+    order: Order
+  ) => {
+    if (order.status === 'ACCEPTED') {
       return (
         <TouchableOpacity
+          style={styles.actionButton}
+          activeOpacity={0.85}
           onPress={() =>
             statusMutation.mutate({
-              jobId: job._id,
+              jobId: order._id,
               action: 'pickup',
             })
           }
-          activeOpacity={0.85}
         >
           <LinearGradient
-            colors={['#fbbf24', '#f59e0b', '#d97706']}
-            style={styles.actionButton}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            colors={['#fbbf24', '#f59e0b']}
+            style={
+              styles.actionButtonGradient
+            }
           >
-            <Text style={styles.buttonText}>Pick Up Order</Text>
+            <Text style={styles.buttonText}>
+              Pick Up Order
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
       );
     }
 
-    if (job.status === 'PICKED_UP') {
+    if (order.status === 'PICKED_UP') {
       return (
         <>
           <TouchableOpacity
-            onPress={() => createPayment(job)}
+            style={styles.actionButton}
             activeOpacity={0.85}
+            onPress={() =>
+              createPayment(order)
+            }
           >
             <LinearGradient
-              colors={['#7ed957', '#4CAF50', '#2e7d32']}
-              style={styles.actionButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              colors={[
+                '#22c55e',
+                '#15803d',
+              ]}
+              style={
+                styles.actionButtonGradient
+              }
             >
-              <Text style={styles.buttonText}>Mark as Delivered</Text>
+              <Text style={styles.buttonText}>
+                Collect Payment
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.failButton}
+            activeOpacity={0.85}
             onPress={() =>
               Alert.alert(
                 'Confirm',
-                'Mark this delivery as FAILED?',
+                'Mark order as FAILED?',
                 [
-                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+
                   {
                     text: 'Yes',
+
                     onPress: () =>
                       statusMutation.mutate({
-                        jobId: job._id,
+                        jobId: order._id,
                         action: 'fail',
                       }),
                   },
-                ],
+                ]
               )
             }
-            activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>Mark as Failed</Text>
+            <Text style={styles.buttonText}>
+              Mark Failed
+            </Text>
           </TouchableOpacity>
         </>
       );
@@ -197,172 +329,523 @@ const createPayment = async (order: Order) => {
     return null;
   };
 
+  /* ================= RENDER CARD ================= */
+
+  const renderOrderItem = ({
+    item: order,
+  }: {
+    item: Order;
+  }) => {
+    const currentStep =
+      getCurrentStepIndex(order.status);
+
+    const isFailed =
+      currentStep === -1;
+
+    const statusConfig =
+      STATUS_CONFIG[order.status];
+
+    return (
+      <View style={styles.orderCard}>
+        <LinearGradient
+          colors={['#ffffff', '#f8fff8']}
+          style={styles.orderCardGradient}
+        >
+          {/* HEADER */}
+
+          <View style={styles.orderHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.orderIdLabel}>
+                Order ID
+              </Text>
+
+              <Text style={styles.orderId}>
+                {order.checkoutId ||
+                  order._id}
+              </Text>
+
+              {/* STATUS BELOW ORDER ID */}
+
+              <LinearGradient
+                colors={[
+                  statusConfig.color,
+                  statusConfig.color + 'DD',
+                ]}
+                style={styles.statusBadge}
+              >
+                <FontAwesome
+                  name={
+                    statusConfig.icon as any
+                  }
+                  size={13}
+                  color="#fff"
+                />
+
+                <Text
+                  style={
+                    styles.statusBadgeText
+                  }
+                >
+                  {statusConfig.label}
+                </Text>
+              </LinearGradient>
+            </View>
+          </View>
+
+          {/* CUSTOMER */}
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoIcon}>
+              <FontAwesome
+                name="user"
+                size={16}
+                color="#16a34a"
+              />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoTitle}>
+                Customer
+              </Text>
+
+              <Text style={styles.infoValue}>
+                {order.userId?.name ||
+                  'Customer'}
+              </Text>
+
+              <Text style={styles.infoSub}>
+                {order.userId?.email || ''}
+              </Text>
+            </View>
+          </View>
+
+          {/* PICKUP ADDRESS */}
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoIcon}>
+              <FontAwesome
+                name="shopping-bag"
+                size={16}
+                color="#f59e0b"
+              />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoTitle}>
+                Pickup Address
+              </Text>
+
+              <Text style={styles.infoValue}>
+                {order.pickupAddress ||
+                  order.storeId?.address ||
+                  'Store Address'}
+              </Text>
+            </View>
+          </View>
+
+          {/* DELIVERY ADDRESS AFTER PICKUP */}
+
+          {(order.status ===
+            'PICKED_UP' ||
+            order.status ===
+              'DELIVERED') && (
+            <View style={styles.deliveryBox}>
+              <View
+                style={styles.deliveryHeader}
+              >
+                <FontAwesome
+                  name="map-marker"
+                  size={18}
+                  color="#16a34a"
+                />
+
+                <Text
+                  style={
+                    styles.deliveryTitle
+                  }
+                >
+                  Delivery Address
+                </Text>
+              </View>
+
+              <Text
+                style={styles.deliveryText}
+              >
+                {
+                  order.deliveryAddress
+                    ?.street
+                }
+                ,{' '}
+                {
+                  order.deliveryAddress
+                    ?.city
+                }
+              </Text>
+
+              <Text
+                style={styles.deliverySubText}
+              >
+                ZIP:{' '}
+                {
+                  order.deliveryAddress
+                    ?.zipCode
+                }
+              </Text>
+
+              <Text
+                style={styles.deliverySubText}
+              >
+                Phone:{' '}
+                {
+                  order.deliveryAddress
+                    ?.phone
+                }
+              </Text>
+
+              {!!order.deliveryAddress
+                ?.notes && (
+                <Text
+                  style={
+                    styles.deliveryNotes
+                  }
+                >
+                  Notes:{' '}
+                  {
+                    order
+                      .deliveryAddress
+                      ?.notes
+                  }
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* PROGRESS */}
+
+          {!isFailed ? (
+            <View
+              style={styles.progressSection}
+            >
+              <Text
+                style={styles.sectionTitle}
+              >
+                Delivery Progress
+              </Text>
+
+              <View
+                style={styles.progressSteps}
+              >
+                {STATUS_STEPS.map(
+                  (step, index) => {
+                    const isCompleted =
+                      index <= currentStep;
+
+                    const isCurrent =
+                      index === currentStep;
+
+                    const stepConfig =
+                      STATUS_CONFIG[
+                        step as keyof typeof STATUS_CONFIG
+                      ];
+
+                    return (
+                      <View
+                        key={step}
+                        style={
+                          styles.stepContainer
+                        }
+                      >
+                        <LinearGradient
+                          colors={
+                            isCompleted
+                              ? [
+                                  stepConfig.color,
+                                  stepConfig.color +
+                                    'DD',
+                                ]
+                              : [
+                                  '#E5E7EB',
+                                  '#F3F4F6',
+                                ]
+                          }
+                          style={[
+                            styles.stepIcon,
+
+                            isCurrent &&
+                              styles.stepIconCurrent,
+                          ]}
+                        >
+                          <FontAwesome
+                            name={
+                              stepConfig.icon as any
+                            }
+                            size={18}
+                            color={
+                              isCompleted
+                                ? '#fff'
+                                : '#9ca3af'
+                            }
+                          />
+                        </LinearGradient>
+
+                        <Text
+                          style={[
+                            styles.stepLabel,
+
+                            isCompleted &&
+                              styles.stepLabelCompleted,
+                          ]}
+                        >
+                          {stepConfig.label}
+                        </Text>
+                      </View>
+                    );
+                  }
+                )}
+              </View>
+            </View>
+          ) : (
+            <View
+              style={styles.failedContainer}
+            >
+              <FontAwesome
+                name="times-circle"
+                size={22}
+                color="#dc2626"
+              />
+
+              <Text
+                style={styles.failedText}
+              >
+                Delivery Failed
+              </Text>
+            </View>
+          )}
+
+          {/* AMOUNT */}
+
+          <View style={styles.amountRow}>
+            <Text style={styles.amountLabel}>
+              Delivery Amount
+            </Text>
+
+            <Text style={styles.amountValue}>
+              ₹{order.totalAmount}
+            </Text>
+          </View>
+
+          {/* ACTIONS */}
+
+          {order.status !==
+            'DELIVERED' &&
+            renderActionButtons(order)}
+        </LinearGradient>
+      </View>
+    );
+  };
+
+  /* ================= LOADING ================= */
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator
+          size="large"
+          color="#16a34a"
+        />
+
+        <Text style={styles.loadingText}>
+          Loading Orders...
+        </Text>
+      </View>
+    );
+  }
+
   /* ================= UI ================= */
 
   return (
-    <LinearGradient
-      colors={['#f8fffe', '#ffffff', '#f0fdf9']}
-      style={{ flex: 1 }}
-    >
-      <ScrollView
-        contentContainerStyle={styles.container}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* NAVBAR */}
+
+      <LinearGradient
+        colors={['#16a34a', '#166534']}
+        style={styles.navbar}
+      >
+        <View>
+          <Text style={styles.navTitle}>
+            My Deliveries
+          </Text>
+
+          <Text style={styles.navSubtitle}>
+            {orders?.length || 0} Active Orders
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.navRefreshButton}
+          onPress={onRefresh}
+        >
+          <FontAwesome
+            name="refresh"
+            size={16}
+            color="#fff"
+          />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      {/* ORDERS */}
+
+      <FlatList
+        data={orders || []}
+        renderItem={renderOrderItem}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={
+          styles.listContent
+        }
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#4CAF50"]}
-            tintColor="#4CAF50"
+            colors={['#16a34a']}
           />
         }
-      >
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>My Orders</Text>
-          <Text style={styles.subtitle}>
-            {myJobs?.length || 0} active {myJobs?.length === 1 ? 'order' : 'orders'}
-          </Text>
-        </View>
-
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>Loading orders...</Text>
-          </View>
-        ) : isError ? (
+        ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>⚠️</Text>
-            <Text style={styles.emptyTitle}>Failed to Load</Text>
-            <Text style={styles.emptySubtitle}>
-              Unable to fetch your orders
+            <FontAwesome
+              name="shopping-bag"
+              size={60}
+              color="#d1d5db"
+            />
+
+            <Text style={styles.emptyTitle}>
+              No Orders
             </Text>
-          </View>
-        ) : myJobs?.length ? (
-          myJobs.map((job) => (
-            <View key={job._id} style={styles.jobCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.storeIconContainer}>
-                  <Text style={styles.storeIcon}>🏪</Text>
-                </View>
-                <View style={styles.storeInfo}>
-                  <Text style={styles.jobStore}>
-                    {job.storeId?.name ?? 'Store'}
-                  </Text>
-                  <Text style={styles.jobAddress}>
-                    {job.deliveryAddress?.street},{' '}
-                    {job.deliveryAddress?.city}
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.detailsContainer}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Delivery Amount</Text>
-                  <Text style={styles.detailValue}>₹{job.totalAmount}</Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Order Status</Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      job.status === 'DELIVERED' && styles.statusDeliveredBadge,
-                      job.status === 'FAILED' && styles.statusFailedBadge,
-                      job.status === 'PICKED_UP' && styles.statusPickedBadge,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        job.status === 'DELIVERED' && styles.statusDeliveredText,
-                        job.status === 'FAILED' && styles.statusFailedText,
-                        job.status === 'PICKED_UP' && styles.statusPickedText,
-                      ]}
-                    >
-                      {job.status}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {job.status !== 'DELIVERED' &&
-                job.status !== 'FAILED' && (
-                  <View style={styles.actionsContainer}>
-                    {renderActions(job)}
-                  </View>
-                )}
-            </View>
-          ))
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>No Active Orders</Text>
-            <Text style={styles.emptySubtitle}>
-              Accept jobs from the Home tab to get started
+            <Text
+              style={styles.emptySubtitle}
+            >
+              Orders will appear here
             </Text>
           </View>
         )}
-      </ScrollView>
-      <Modal visible={showQR} transparent animationType="slide">
-  <View style={styles.modalContainer}>
-    <View style={styles.modalCard}>
-      <Text style={styles.modalTitle}>Collect Payment</Text>
+      />
 
-      {payment && (
-        <>
-          <QRCode
-  value={`upi://pay?pa=${payment.upiId}&pn=Vinayak&am=${payment.paymentRs}&cu=INR&tr=${payment.checkoutId}`}
-          />
+      {/* QR MODAL */}
 
-          <Text style={styles.amountText}>
-            ₹{payment.paymentRs}
-          </Text>
+      <Modal
+        visible={showQR}
+        transparent
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              Collect Payment
+            </Text>
 
-          <Text style={{ marginTop: 10, fontSize: 12 }}>
-            Ask customer to scan & pay
-          </Text>
+            {payment && (
+              <>
+                <QRCode
+                  size={220}
+                  value={`upi://pay?pa=${payment.upiId}&pn=Delivery&am=${payment.paymentRs}&cu=INR&tr=${payment.checkoutId}`}
+                />
 
-          {/* TEMP CONFIRM BUTTON */}
-          <TouchableOpacity
-  style={styles.confirmButton}
-  onPress={async () => {
-    try {
-      if (!selectedOrder || !payment?.checkoutId) {
-        return Alert.alert('Error', 'Invalid payment');
-      }
+                <Text
+                  style={styles.amountText}
+                >
+                  ₹{payment.paymentRs}
+                </Text>
 
-      await apiRequest(
-        `/payment-transactions/${payment.checkoutId}/status`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'SUCCESS' }),
-        }
-      );
+                <TouchableOpacity
+                  style={
+                    styles.confirmButton
+                  }
+                  onPress={async () => {
+                    try {
+                      await apiRequest(
+                        `/payment-transactions/${payment.checkoutId}/status`,
+                        {
+                          method:
+                            'PATCH',
 
-      statusMutation.mutate({
-        jobId: selectedOrder._id,
-        action: 'deliver',
-      });
+                          body: JSON.stringify(
+                            {
+                              status:
+                                'SUCCESS',
+                            }
+                          ),
+                        }
+                      );
 
-      setShowQR(false);
-      setPayment(null);
-      setSelectedOrder(null);
+                      await statusMutation.mutateAsync(
+                        {
+                          jobId:
+                            selectedOrder!._id,
 
-      Alert.alert('Success', 'Payment received & order delivered');
-    } catch (err: any) {
-      Alert.alert('Error', err.message);
-    }
-  }}
->
-  <Text style={styles.buttonText}>Payment Received</Text>
-</TouchableOpacity>
-        </>
-      )}
+                          action:
+                            'deliver',
+                        }
+                      );
+
+                      setShowQR(false);
+
+                      setPayment(null);
+
+                      setSelectedOrder(
+                        null
+                      );
+
+                      Alert.alert(
+                        'Success',
+                        'Payment received'
+                      );
+                    } catch (err: any) {
+                      Alert.alert(
+                        'Error',
+                        err.message
+                      );
+                    }
+                  }}
+                >
+                  <Text
+                    style={styles.buttonText}
+                  >
+                    Payment Received
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    marginTop: 12,
+                  }}
+                  onPress={() => {
+                    setShowQR(false);
+
+                    setPayment(null);
+
+                    setSelectedOrder(
+                      null
+                    );
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: 'red',
+                      fontWeight: '700',
+                    }}
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
-  </View>
-</Modal>
-    </LinearGradient>
   );
 }
 
@@ -370,261 +853,361 @@ const createPayment = async (order: Order) => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-
-  headerContainer: {
-    marginBottom: 24,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1a472a',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '500',
-    letterSpacing: 0.3,
-  },
-
-  loadingContainer: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
-
-  loadingText: {
-    marginTop: 16,
-    fontSize: 15,
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-
-  jobCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: '#e8f5e9',
-  },
-
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-
-  storeIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#f1f8f4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-
-  storeIcon: {
-    fontSize: 28,
-  },
-
-  storeInfo: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
   },
 
-  jobStore: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a472a',
-    marginBottom: 4,
-  },
+  navbar: {
+    paddingTop: 42,
+    paddingBottom: 16,
+    paddingHorizontal: 18,
 
-  jobAddress: {
-    fontSize: 14,
-    color: '#66bb6a',
-    fontWeight: '400',
-    lineHeight: 20,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: '#e8f5e9',
-    marginBottom: 16,
-  },
-
-  detailsContainer: {
-    marginBottom: 6,
-  },
-
-  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+
+    elevation: 6,
   },
 
-  detailLabel: {
-    fontSize: 13,
-    color: '#2e7d32',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  navTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
   },
 
-  detailValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a472a',
+  navSubtitle: {
+    color: '#dcfce7',
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  navRefreshButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+
+    backgroundColor:
+      'rgba(255,255,255,0.18)',
+
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  listContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    marginTop: 12,
+    fontSize: 15,
+    color: '#6b7280',
+  },
+
+  orderCard: {
+    marginBottom: 18,
+    borderRadius: 24,
+    overflow: 'hidden',
+
+    backgroundColor: '#fff',
+
+    elevation: 4,
+  },
+
+  orderCardGradient: {
+    padding: 20,
+  },
+
+  orderHeader: {
+    marginBottom: 20,
+  },
+
+  orderIdLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginBottom: 5,
+  },
+
+  orderId: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
   },
 
   statusBadge: {
-    backgroundColor: '#f1f8f4',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#c8e6c9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+
+    marginTop: 12,
+
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+
+    borderRadius: 999,
   },
 
-  statusText: {
+  statusBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+
+    backgroundColor: '#f9fafb',
+
+    borderRadius: 18,
+
+    padding: 14,
+
+    marginBottom: 14,
+  },
+
+  infoIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+
+    backgroundColor: '#ecfdf5',
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    marginRight: 12,
+  },
+
+  infoTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#4CAF50',
-    letterSpacing: 0.5,
+    color: '#6b7280',
+    marginBottom: 4,
   },
 
-  statusDeliveredBadge: {
-    backgroundColor: '#f1f8f4',
-    borderColor: '#a5d6a7',
+  infoValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
   },
 
-  statusDeliveredText: {
-    color: '#2e7d32',
+  infoSub: {
+    marginTop: 3,
+    color: '#6b7280',
+    fontSize: 13,
   },
 
-  statusFailedBadge: {
-    backgroundColor: '#fee2e2',
-    borderColor: '#fca5a5',
+  deliveryBox: {
+    backgroundColor: '#ecfdf5',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 20,
   },
 
-  statusFailedText: {
-    color: '#dc2626',
+  deliveryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
 
-  statusPickedBadge: {
-    backgroundColor: '#fef3c7',
-    borderColor: '#fde68a',
+  deliveryTitle: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#166534',
   },
 
-  statusPickedText: {
-    color: '#d97706',
+  deliveryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
   },
 
-  actionsContainer: {
-    marginTop: 16,
-    gap: 12,
+  deliverySubText: {
+    fontSize: 13,
+    color: '#4b5563',
+    marginBottom: 4,
+  },
+
+  deliveryNotes: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#374151',
+    fontStyle: 'italic',
+  },
+
+  progressSection: {
+    marginBottom: 22,
+  },
+
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 18,
+  },
+
+  progressSteps: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  stepContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  stepIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  stepIconCurrent: {
+    transform: [{ scale: 1.08 }],
+  },
+
+  stepLabel: {
+    marginTop: 10,
+    fontSize: 11,
+    color: '#9ca3af',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  stepLabelCompleted: {
+    color: '#111827',
+    fontWeight: '800',
+  },
+
+  amountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+
+    marginBottom: 20,
+  },
+
+  amountLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+
+  amountValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#16a34a',
   },
 
   actionButton: {
-    paddingVertical: 16,
-    borderRadius: 14,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+
+  actionButtonGradient: {
+    paddingVertical: 15,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
   },
 
   failButton: {
     backgroundColor: '#dc2626',
-    paddingVertical: 16,
-    borderRadius: 14,
+    paddingVertical: 15,
+    borderRadius: 18,
     alignItems: 'center',
-    shadowColor: '#dc2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
   },
 
   buttonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+
+  failedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    marginBottom: 22,
+  },
+
+  failedText: {
+    color: '#dc2626',
+    fontWeight: '800',
     fontSize: 16,
-    letterSpacing: 0.8,
+    marginLeft: 8,
   },
 
   emptyContainer: {
     alignItems: 'center',
-    marginTop: 80,
-    paddingHorizontal: 40,
-  },
-
-  emptyIcon: {
-    fontSize: 72,
-    marginBottom: 20,
+    marginTop: 120,
   },
 
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1a472a',
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 16,
+    color: '#111827',
   },
 
   emptySubtitle: {
-    fontSize: 15,
-    color: '#66bb6a',
-    textAlign: 'center',
-    lineHeight: 22,
+    marginTop: 8,
+    color: '#9ca3af',
   },
+
   modalContainer: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
+    flex: 1,
+    backgroundColor:
+      'rgba(0,0,0,0.5)',
 
-modalCard: {
-  backgroundColor: '#fff',
-  padding: 24,
-  borderRadius: 16,
-  alignItems: 'center',
-  width: '80%',
-},
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-modalTitle: {
-  fontSize: 18,
-  fontWeight: '700',
-  marginBottom: 16,
-},
+  modalCard: {
+    backgroundColor: '#fff',
+    width: '86%',
+    borderRadius: 26,
+    padding: 24,
+    alignItems: 'center',
+  },
 
-amountText: {
-  marginTop: 12,
-  fontSize: 20,
-  fontWeight: '700',
-},
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 20,
+    color: '#111827',
+  },
 
-confirmButton: {
-  marginTop: 20,
-  backgroundColor: '#4CAF50',
-  padding: 14,
-  borderRadius: 10,
-  width: '100%',
-  alignItems: 'center',
-},
+  amountText: {
+    marginTop: 18,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#111827',
+  },
+
+  confirmButton: {
+    marginTop: 24,
+    backgroundColor: '#16a34a',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 18,
+    alignItems: 'center',
+  },
 });
