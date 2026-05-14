@@ -1,20 +1,22 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import { useAuth } from "./contexts/AuthContext";
 import { getCurrentUser, loginApi } from "./services/api";
 
@@ -26,11 +28,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // SHOW / HIDE PASSWORD
+  const [showPassword, setShowPassword] = useState(false);
+
   const loginMutation = useMutation({
-    mutationFn: async (credentials: {
-      email: string;
-      password: string;
-    }) => {
+    mutationFn: async (credentials: { email: string; password: string }) => {
       const loginResponse = await loginApi(credentials);
       return loginResponse;
     },
@@ -53,10 +55,7 @@ export default function LoginScreen() {
     onError: (error: any) => {
       console.error("Login error:", error);
 
-      Alert.alert(
-        "Login Failed",
-        error.message || "Invalid email or password"
-      );
+      Alert.alert("Login Failed", error.message || "Invalid email or password");
     },
   });
 
@@ -129,9 +128,20 @@ export default function LoginScreen() {
                       placeholderTextColor="#9ca3af"
                       value={password}
                       onChangeText={setPassword}
-                      secureTextEntry
+                      secureTextEntry={!showPassword}
                       editable={!loginMutation.isPending}
                     />
+
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeButton}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={22}
+                        color="#6b7280"
+                      />
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -168,29 +178,6 @@ export default function LoginScreen() {
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
-
-                {/* Divider */}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-
-                  <Text style={styles.dividerText}>or</Text>
-
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Footer */}
-                <View style={styles.footer}>
-                  <Text style={styles.footerText}>
-                    Don't have an account?{" "}
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={() => router.push("/signup")}
-                    disabled={loginMutation.isPending}
-                  >
-                    <Text style={styles.linkText}>Sign Up</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
             </View>
           </View>
@@ -203,7 +190,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f4fff7",
+    backgroundColor: "#f9fafb",
   },
 
   gradient: {
@@ -212,7 +199,7 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     justifyContent: "center",
   },
 
@@ -220,81 +207,82 @@ const styles = StyleSheet.create({
 
   header: {
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 32,
   },
 
   logoContainer: {
-    marginBottom: 18,
+    marginBottom: 24,
   },
 
   logoImage: {
-    width: 120,
-    height: 120,
+    width: 130,
+    height: 130,
 
-    shadowColor: "#22c55e",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 18,
-    elevation: 10,
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
 
   title: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: "900",
-    color: "#111827",
-    marginBottom: 8,
-    letterSpacing: -1,
+    color: "#0f172a",
+    marginBottom: 10,
+    letterSpacing: -0.8,
   },
 
   subtitle: {
     fontSize: 15,
     color: "#6b7280",
-    fontWeight: "500",
+    fontWeight: "600",
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 24,
   },
 
   /* FORM CARD */
 
   formCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 30,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
+    borderColor: "#f0f4f8",
 
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 15 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
-    shadowRadius: 30,
-    elevation: 10,
+    shadowRadius: 16,
+    elevation: 6,
 
     overflow: "hidden",
   },
 
   formCardInner: {
-    paddingHorizontal: 24,
-    paddingTop: 26,
-    paddingBottom: 26,
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 32,
   },
 
   /* INPUTS */
 
   inputGroup: {
-    marginBottom: 18,
+    marginBottom: 20,
   },
 
   inputLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#166534",
-    marginBottom: 8,
-    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#6b7280",
+    marginBottom: 10,
+    marginLeft: 2,
     letterSpacing: 0.4,
+    textTransform: "uppercase",
   },
 
   inputWrapper: {
     backgroundColor: "#f9fafb",
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: "#e5e7eb",
 
@@ -303,8 +291,8 @@ const styles = StyleSheet.create({
 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 1,
   },
 
@@ -312,85 +300,46 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     paddingHorizontal: 18,
-    fontSize: 15,
-    color: "#111827",
-    fontWeight: "500",
+    fontSize: 16,
+    color: "#0f172a",
+    fontWeight: "600",
+  },
+
+  eyeButton: {
+    paddingHorizontal: 16,
   },
 
   forgotPassword: {
     alignSelf: "flex-end",
-    marginBottom: 22,
-    marginTop: -2,
+    marginBottom: 24,
+    marginTop: 2,
   },
 
   forgotPasswordText: {
     color: "#16a34a",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
   /* BUTTON */
 
   button: {
-    height: 58,
-    borderRadius: 18,
+    height: 56,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
 
-    shadowColor: "#22c55e",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 8,
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 5,
   },
 
   buttonText: {
     color: "#ffffff",
     fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-
-  /* DIVIDER */
-
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 24,
-  },
-
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e5e7eb",
-  },
-
-  dividerText: {
-    marginHorizontal: 14,
-    fontSize: 11,
-    color: "#9ca3af",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-  },
-
-  /* FOOTER */
-
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  footerText: {
-    color: "#6b7280",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-
-  linkText: {
-    color: "#16a34a",
-    fontSize: 14,
-    fontWeight: "800",
+    fontWeight: "900",
+    letterSpacing: 0.3,
   },
 });

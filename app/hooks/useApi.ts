@@ -1,25 +1,63 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchUserProfile, updateUserProfile } from "../services/api";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
-// Example: Fetch user profile
+import {
+  fetchUserProfile,
+  updateUserProfile,
+} from "../services/api";
+
+/* ================= FETCH USER PROFILE ================= */
+
 export function useUserProfile(userId: string) {
   return useQuery({
     queryKey: ["userProfile", userId],
+
     queryFn: () => fetchUserProfile(userId),
-    enabled: !!userId, // Only run if userId exists
+
+    // Run only if userId exists
+    enabled: !!userId,
+
+    staleTime: 5 * 60 * 1000,
+
+    retry: 1,
   });
 }
 
-// Example: Update user profile
-export function useUpdateUserProfile(userId: string) {
+/* ================= UPDATE USER PROFILE ================= */
+
+export function useUpdateUserProfile(
+  userId: string
+) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: any) => updateUserProfile(userId, data),
+    mutationFn: async (data: any) => {
+      return await updateUserProfile(
+        userId,
+        data
+      );
+    },
+
     onSuccess: () => {
-      // Invalidate and refetch user profile
-      queryClient.invalidateQueries({ queryKey: ["userProfile", userId] });
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      // Refresh profile data
+      queryClient.invalidateQueries({
+        queryKey: ["userProfile", userId],
+      });
+
+      // Refresh current logged-in user
+      queryClient.invalidateQueries({
+        queryKey: ["currentUser"],
+      });
+    },
+
+    onError: (error: Error) => {
+      console.log(
+        "Profile update failed:",
+        error
+      );
     },
   });
 }

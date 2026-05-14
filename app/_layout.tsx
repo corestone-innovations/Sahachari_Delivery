@@ -93,7 +93,6 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Auth screens */}
-        <Stack.Screen name="signup" />
         <Stack.Screen name="login" />
         <Stack.Screen name="forgot-password" />
 
@@ -110,11 +109,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#E8F5E9",
+    backgroundColor: "#F9FAFB",
   },
   splashImage: {
-    width: "40%",
-    height: "40%",
+    width: "45%",
+    height: "45%",
     maxWidth: 500,
     maxHeight: 500,
   },

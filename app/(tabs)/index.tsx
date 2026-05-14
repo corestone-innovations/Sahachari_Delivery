@@ -1,21 +1,17 @@
-import { Text, View } from '@/components/Themed';
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { apiRequest } from '../services/api';
-import { RefreshControl } from "react-native";
+import { Text, View } from "@/components/Themed";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+} from "react-native";
+import { useAuth } from "../contexts/AuthContext";
+import { apiRequest } from "../services/api";
 /* ================= TYPES ================= */
 
 type Job = {
@@ -41,11 +37,10 @@ export default function TabOneScreen() {
   const {
     data: jobs = [], // ✅ default empty array
     isLoading: jobsLoading,
-     refetch,
-   } = useQuery<Job[]>({
-    queryKey: ['availableJobs'],
-    queryFn: () =>
-      apiRequest('/delivery/orders?status=READY'),
+    refetch,
+  } = useQuery<Job[]>({
+    queryKey: ["availableJobs"],
+    queryFn: () => apiRequest("/delivery/orders?status=READY"),
     enabled: !!token,
   });
 
@@ -53,68 +48,60 @@ export default function TabOneScreen() {
   const acceptJobMutation = useMutation({
     mutationFn: (jobId: string) =>
       apiRequest(`/delivery/orders/${jobId}/accept`, {
-        method: 'POST',
+        method: "POST",
       }),
 
     onSuccess: () => {
-      Alert.alert('Success', 'Job accepted successfully!');
+      Alert.alert("Success", "Job accepted successfully!");
       queryClient.invalidateQueries({
-        queryKey: ['availableJobs'],
+        queryKey: ["availableJobs"],
       });
       queryClient.invalidateQueries({
-        queryKey: ['myJobs'],
+        queryKey: ["myJobs"],
       });
     },
 
     onError: (error: any) => {
-      Alert.alert(
-        'Error',
-        error?.message || 'Failed to accept the job',
-      );
+      Alert.alert("Error", error?.message || "Failed to accept the job");
     },
   });
   /*refresh */
   const [refreshing, setRefreshing] = useState(false);
 
-const onRefresh = async () => {
-  setRefreshing(true);
-  await refetch();
-  setRefreshing(false);
-};
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
   /* ================= UI ================= */
 
   return (
     <LinearGradient
-      colors={['#f8fffe', '#ffffff', '#f0fdf9']}
+      colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
       style={{ flex: 1 }}
     >
       <ScrollView
-  contentContainerStyle={styles.container}
-  showsVerticalScrollIndicator={false}
-  refreshControl={
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      colors={["#4CAF50"]}
-      tintColor="#4CAF50"
-    />
-  }
->
-  
-
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#4CAF50"]}
+            tintColor="#4CAF50"
+          />
+        }
+      >
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Available Jobs</Text>
           <Text style={styles.subtitle}>
-            {jobs.length} {jobs.length === 1 ? 'delivery' : 'deliveries'} ready
+            {jobs.length} {jobs.length === 1 ? "delivery" : "deliveries"} ready
           </Text>
         </View>
 
         {jobsLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              size="large"
-              color="#4CAF50"
-            />
+            <ActivityIndicator size="large" color="#4CAF50" />
             <Text style={styles.loadingText}>Loading jobs...</Text>
           </View>
         ) : jobs.length > 0 ? (
@@ -126,11 +113,11 @@ const onRefresh = async () => {
                 </View>
                 <View style={styles.storeInfo}>
                   <Text style={styles.jobStore}>
-                    {job.storeId?.name ?? 'Store'}
+                    {job.storeId?.name ?? "Store"}
                   </Text>
                   <Text style={styles.jobAddress}>
-                    {job.deliveryAddress?.street ?? '—'},{' '}
-                    {job.deliveryAddress?.city ?? ''}
+                    {job.deliveryAddress?.street ?? "—"},{" "}
+                    {job.deliveryAddress?.city ?? ""}
                   </Text>
                 </View>
               </View>
@@ -157,9 +144,11 @@ const onRefresh = async () => {
                 activeOpacity={0.85}
               >
                 <LinearGradient
-                  colors={acceptJobMutation.isPending 
-                    ? ['#a5d6a7', '#81c784'] 
-                    : ['#7ed957', '#4CAF50', '#2e7d32']}
+                  colors={
+                    acceptJobMutation.isPending
+                      ? ["#a5d6a7", "#81c784"]
+                      : ["#7ed957", "#4CAF50", "#2e7d32"]
+                  }
                   style={styles.acceptButton}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
@@ -191,73 +180,75 @@ const onRefresh = async () => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
 
   headerContainer: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
 
   title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1a472a',
-    marginBottom: 4,
-    letterSpacing: -0.5,
+    fontSize: 36,
+    fontWeight: "900",
+    color: "#0f172a",
+    marginBottom: 6,
+    letterSpacing: -0.8,
   },
 
   subtitle: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '500',
-    letterSpacing: 0.3,
+    fontSize: 15,
+    color: "#6b7280",
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
 
   loadingContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 60,
   },
 
   loadingText: {
     marginTop: 16,
-    fontSize: 15,
-    color: '#4CAF50',
-    fontWeight: '500',
+    fontSize: 16,
+    color: "#6b7280",
+    fontWeight: "600",
   },
 
   jobCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 6 },
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowRadius: 8,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: '#e8f5e9',
+    borderColor: "#f0f4f8",
   },
 
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
   },
 
   storeIconContainer: {
-    width: 56,
-    height: 56,
+    width: 60,
+    height: 60,
     borderRadius: 16,
-    backgroundColor: '#f1f8f4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
 
   storeIcon: {
-    fontSize: 28,
+    fontSize: 32,
   },
 
   storeInfo: {
@@ -266,86 +257,87 @@ const styles = StyleSheet.create({
 
   jobStore: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1a472a',
+    fontWeight: "800",
+    color: "#0f172a",
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
 
   jobAddress: {
     fontSize: 14,
-    color: '#66bb6a',
-    fontWeight: '400',
+    color: "#6b7280",
+    fontWeight: "500",
     lineHeight: 20,
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#e8f5e9',
-    marginBottom: 16,
-  },
-
-  detailsContainer: {
+    backgroundColor: "#f0f4f8",
     marginBottom: 18,
   },
 
+  detailsContainer: {
+    marginBottom: 20,
+  },
+
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
   },
 
   detailLabel: {
-    fontSize: 13,
-    color: '#2e7d32',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
 
   detailValue: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1a472a',
+    fontWeight: "800",
+    color: "#0f172a",
   },
 
   statusBadge: {
-    backgroundColor: '#f1f8f4',
-    paddingHorizontal: 14,
+    backgroundColor: "#ecfdf5",
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#c8e6c9',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#a7f3d0",
   },
 
   statusText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#4CAF50',
-    letterSpacing: 0.5,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#047857",
+    letterSpacing: 0.4,
   },
 
   acceptButton: {
     paddingVertical: 16,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#4CAF50',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
 
   acceptButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.8,
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
 
   emptyContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 80,
     paddingHorizontal: 40,
   },
@@ -356,16 +348,18 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1a472a',
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: 10,
+    letterSpacing: -0.3,
   },
 
   emptySubtitle: {
     fontSize: 15,
-    color: '#66bb6a',
-    textAlign: 'center',
-    lineHeight: 22,
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 24,
+    fontWeight: "500",
   },
 });

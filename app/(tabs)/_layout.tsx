@@ -1,7 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs, useRouter, useSegments } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Alert, Pressable, BackHandler } from "react-native";
+import React, { useEffect } from "react";
+import { Alert, BackHandler, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
@@ -21,65 +21,84 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { token, clearAuthToken, isLoading } = useAuth(); // Added isLoading from context
+
+  const { token, clearAuthToken, isLoading } = useAuth();
+
   const router = useRouter();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
+
   const headerShown = useClientOnlyValue(false, true);
-  /* ---------- PROTECT ROUTES & PREVENT BACK-EXIT LOGOUT ---------- */
+
+  /* ---------- PROTECT ROUTES ---------- */
+
   useEffect(() => {
-    // 1. Wait until the AuthContext has finished checking AsyncStorage
     if (isLoading) return;
 
-    // 2. Only redirect to signup if we are officially 'logged out' (token is null)
+    // If user is not logged in go to LOGIN page
     if (!token) {
-      router.replace("/signup");
+      router.replace("/login");
     }
   }, [token, isLoading]);
 
-  /* ---------- ANDROID BACK BUTTON HANDLING ---------- */
+  /* ---------- ANDROID BACK BUTTON ---------- */
+
   useEffect(() => {
     const onBackPress = () => {
-      // 1. Cast the last segment as a generic string to bypass strict routing types
       const currentRoute = segments[segments.length - 1] as string;
-      
-      // 2. Check for "index" (Home) or if we are at the top level
+
       const isHome = currentRoute === "index" || segments.length <= 1;
 
       if (isHome) {
         Alert.alert("Exit App", "Do you want to exit the application?", [
-          { text: "Cancel", style: "cancel" },
-          { text: "Exit", onPress: () => BackHandler.exitApp() },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Exit",
+            onPress: () => BackHandler.exitApp(),
+          },
         ]);
-        return true; 
+
+        return true;
       }
-      return false; 
+
+      return false;
     };
 
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
-      onBackPress
+      onBackPress,
     );
 
     return () => subscription.remove();
   }, [segments]);
 
   /* ---------- LOGOUT ---------- */
+
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+
       {
         text: "Logout",
         style: "destructive",
+
         onPress: async () => {
           await clearAuthToken();
-          router.replace("/signup");
+
+          // Redirect to LOGIN page
+          router.replace("/login");
         },
       },
     ]);
   };
 
-  // Prevent flickering while checking for the token
+  // Prevent flicker while checking token
   if (isLoading) return null;
 
   return (
@@ -87,49 +106,70 @@ export default function TabLayout() {
       screenOptions={{
         headerShown,
 
-        /* 🌿 PREMIUM TAB BAR THEME */
-        tabBarActiveTintColor: "#4CAF50",
+        /* TAB BAR */
+
+        tabBarActiveTintColor: "#16a34a",
         tabBarInactiveTintColor: "#9ca3af",
+
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          borderTopWidth: 0,
-          elevation: 12,
-          height: 70 + insets.bottom,
-          paddingBottom: 10 + insets.bottom,
-          paddingTop: 10,
-          shadowColor: "#4CAF50",
-          shadowOffset: { width: 0, height: -4 },
+          borderTopWidth: 1,
+          borderTopColor: "#f0f4f8",
+          elevation: 8,
+
+          height: 72 + insets.bottom,
+
+          paddingBottom: 12 + insets.bottom,
+          paddingTop: 12,
+
+          shadowColor: "#000",
+
+          shadowOffset: {
+            width: 0,
+            height: -4,
+          },
+
           shadowOpacity: 0.08,
           shadowRadius: 12,
         },
+
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: "600",
-          letterSpacing: 0.3,
+          fontWeight: "700",
+          letterSpacing: 0.2,
+          marginTop: -4,
         },
 
-        /* 🌿 PREMIUM HEADER THEME */
+        /* HEADER */
+
         headerStyle: {
-          backgroundColor: "#f8fffe",
-          elevation: 0,
-          shadowOpacity: 0,
+          backgroundColor: "#FFFFFF",
+
+          elevation: 2,
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+
           borderBottomWidth: 1,
-          borderBottomColor: "#e8f5e9",
+          borderBottomColor: "#f0f4f8",
         },
+
         headerTitleStyle: {
-          fontWeight: "800",
-          color: "#1a472a",
-          fontSize: 20,
-          letterSpacing: -0.3,
+          fontWeight: "900",
+          color: "#0f172a",
+          fontSize: 22,
+          letterSpacing: -0.4,
         },
       }}
     >
       {/* ================= HOME ================= */}
+
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
+
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+
           headerRight: () => (
             <Pressable onPress={handleLogout} style={{ marginRight: 16 }}>
               {({ pressed }) => (
@@ -137,7 +177,9 @@ export default function TabLayout() {
                   name="sign-out"
                   size={20}
                   color="#1a472a"
-                  style={{ opacity: pressed ? 0.5 : 1 }}
+                  style={{
+                    opacity: pressed ? 0.5 : 1,
+                  }}
                 />
               )}
             </Pressable>
@@ -146,10 +188,12 @@ export default function TabLayout() {
       />
 
       {/* ================= MY ORDERS ================= */}
+
       <Tabs.Screen
         name="myorders"
         options={{
           title: "My Orders",
+
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="list-alt" color={color} />
           ),
@@ -157,10 +201,12 @@ export default function TabLayout() {
       />
 
       {/* ================= PROFILE ================= */}
+
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
+
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
