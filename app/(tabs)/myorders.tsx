@@ -1,10 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { LinearGradient } from "expo-linear-gradient";
-
 import React, { useState } from "react";
-
 import QRCode from "react-native-qrcode-svg";
 
 import {
@@ -114,6 +111,8 @@ export default function DeliveryOrdersScreen() {
 
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
 
+  const [creatingPayment, setCreatingPayment] = useState(false);
+
   /* ================= FETCH ORDERS ================= */
 
   const {
@@ -167,27 +166,62 @@ export default function DeliveryOrdersScreen() {
 
   const createPayment = async (order: Order) => {
     try {
+      setCreatingPayment(true);
+
       if (!order.checkoutId) {
-        return Alert.alert("Error", "Checkout ID missing");
+        Alert.alert("Error", "Checkout ID missing");
+        return;
       }
 
-      const res = (await apiRequest("/payment-transactions", {
+      // STEP 1: FETCH UPI DETAILS FIRST
+      const upiRes = (await apiRequest(`/upi-collection/order/${order._id}`, {
+        method: "GET",
+      })) as {
+        upiId?: string;
+        name?: string;
+        phoneNumber?: string;
+      };
+
+      console.log("UPI RESPONSE =>", upiRes);
+
+      // VALIDATE UPI
+      if (!upiRes?.upiId || typeof upiRes.upiId !== "string") {
+        Alert.alert("Error", "UPI ID not found");
+        return;
+      }
+
+      // STEP 2: CREATE PAYMENT TRANSACTION WITH UPI ID
+      const paymentRes = (await apiRequest("/payment-transactions", {
         method: "POST",
 
         body: JSON.stringify({
           paymentRs: order.totalAmount,
-          upiId: order.upiId || "test@upi",
           checkoutId: order.checkoutId,
+          upiId: upiRes.upiId,
         }),
       })) as PaymentResponse;
 
-      setPayment(res);
+      console.log("PAYMENT RESPONSE =>", paymentRes);
 
-      setSelectedOrder(order);
+      // STEP 3: SAVE DATA
+      setPayment({
+        ...paymentRes,
+        upiId: upiRes.upiId,
+      });
 
+      setSelectedOrder({
+        ...order,
+        upiId: upiRes.upiId,
+      });
+
+      // STEP 4: OPEN QR
       setShowQR(true);
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      console.log("PAYMENT ERROR =>", err);
+
+      Alert.alert("Error", err?.message || "Unable to create payment");
+    } finally {
+      setCreatingPayment(false);
     }
   };
 
@@ -232,13 +266,18 @@ export default function DeliveryOrdersScreen() {
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.85}
-            onPress={() => createPayment(order)}
+            onPress={() => !creatingPayment && createPayment(order)}
+            disabled={creatingPayment}
           >
             <LinearGradient
               colors={["#22c55e", "#15803d"]}
               style={styles.actionButtonGradient}
             >
-              <Text style={styles.buttonText}>Collect Payment</Text>
+              {creatingPayment ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Collect Payment</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
 
@@ -288,8 +327,6 @@ export default function DeliveryOrdersScreen() {
           colors={["#ffffff", "#f8fff8"]}
           style={styles.orderCardGradient}
         >
-          {/* HEADER */}
-
           <View style={styles.orderHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.orderIdLabel}>Order ID</Text>
@@ -297,8 +334,6 @@ export default function DeliveryOrdersScreen() {
               <Text style={styles.orderId}>
                 {order.checkoutId || order._id}
               </Text>
-
-              {/* STATUS BELOW ORDER ID */}
 
               <LinearGradient
                 colors={[statusConfig.color, statusConfig.color + "DD"]}
@@ -314,8 +349,6 @@ export default function DeliveryOrdersScreen() {
               </LinearGradient>
             </View>
           </View>
-
-          {/* CUSTOMER */}
 
           <View style={styles.infoCard}>
             <View style={styles.infoIcon}>
@@ -333,8 +366,6 @@ export default function DeliveryOrdersScreen() {
             </View>
           </View>
 
-          {/* PICKUP ADDRESS */}
-
           <View style={styles.infoCard}>
             <View style={styles.infoIcon}>
               <FontAwesome name="shopping-bag" size={16} color="#f59e0b" />
@@ -351,103 +382,11 @@ export default function DeliveryOrdersScreen() {
             </View>
           </View>
 
-          {/* DELIVERY ADDRESS AFTER PICKUP */}
-
-          {(order.status === "PICKED_UP" || order.status === "DELIVERED") && (
-            <View style={styles.deliveryBox}>
-              <View style={styles.deliveryHeader}>
-                <FontAwesome name="map-marker" size={18} color="#16a34a" />
-
-                <Text style={styles.deliveryTitle}>Delivery Address</Text>
-              </View>
-
-              <Text style={styles.deliveryText}>
-                {order.deliveryAddress?.street}, {order.deliveryAddress?.city}
-              </Text>
-
-              <Text style={styles.deliverySubText}>
-                ZIP: {order.deliveryAddress?.zipCode}
-              </Text>
-
-              <Text style={styles.deliverySubText}>
-                Phone: {order.deliveryAddress?.phone}
-              </Text>
-
-              {!!order.deliveryAddress?.notes && (
-                <Text style={styles.deliveryNotes}>
-                  Notes: {order.deliveryAddress?.notes}
-                </Text>
-              )}
-            </View>
-          )}
-
-          {/* PROGRESS */}
-
-          {!isFailed ? (
-            <View style={styles.progressSection}>
-              <Text style={styles.sectionTitle}>Delivery Progress</Text>
-
-              <View style={styles.progressSteps}>
-                {STATUS_STEPS.map((step, index) => {
-                  const isCompleted = index <= currentStep;
-
-                  const isCurrent = index === currentStep;
-
-                  const stepConfig =
-                    STATUS_CONFIG[step as keyof typeof STATUS_CONFIG];
-
-                  return (
-                    <View key={step} style={styles.stepContainer}>
-                      <LinearGradient
-                        colors={
-                          isCompleted
-                            ? [stepConfig.color, stepConfig.color + "DD"]
-                            : ["#E5E7EB", "#F3F4F6"]
-                        }
-                        style={[
-                          styles.stepIcon,
-
-                          isCurrent && styles.stepIconCurrent,
-                        ]}
-                      >
-                        <FontAwesome
-                          name={stepConfig.icon as any}
-                          size={18}
-                          color={isCompleted ? "#fff" : "#9ca3af"}
-                        />
-                      </LinearGradient>
-
-                      <Text
-                        style={[
-                          styles.stepLabel,
-
-                          isCompleted && styles.stepLabelCompleted,
-                        ]}
-                      >
-                        {stepConfig.label}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.failedContainer}>
-              <FontAwesome name="times-circle" size={22} color="#dc2626" />
-
-              <Text style={styles.failedText}>Delivery Failed</Text>
-            </View>
-          )}
-
-          {/* AMOUNT */}
-
           <View style={styles.amountRow}>
             <Text style={styles.amountLabel}>Delivery Amount</Text>
 
             <Text style={styles.amountValue}>₹{order.totalAmount}</Text>
           </View>
-
-          {/* ACTIONS */}
 
           {order.status !== "DELIVERED" && renderActionButtons(order)}
         </LinearGradient>
@@ -473,8 +412,6 @@ export default function DeliveryOrdersScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* NAVBAR */}
-
       <LinearGradient colors={["#16a34a", "#166534"]} style={styles.navbar}>
         <View>
           <Text style={styles.navTitle}>My Deliveries</Text>
@@ -489,8 +426,6 @@ export default function DeliveryOrdersScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ORDERS */}
-
       <FlatList
         data={orders || []}
         renderItem={renderOrderItem}
@@ -504,18 +439,9 @@ export default function DeliveryOrdersScreen() {
             colors={["#16a34a"]}
           />
         }
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <FontAwesome name="shopping-bag" size={60} color="#d1d5db" />
-
-            <Text style={styles.emptyTitle}>No Orders</Text>
-
-            <Text style={styles.emptySubtitle}>Orders will appear here</Text>
-          </View>
-        )}
       />
 
-      {/* QR MODAL */}
+      {/* ================= QR MODAL ================= */}
 
       <Modal visible={showQR} transparent animationType="slide">
         <View style={styles.modalContainer}>
@@ -526,12 +452,27 @@ export default function DeliveryOrdersScreen() {
               <>
                 <QRCode
                   size={220}
-                  value={
-                    selectedOrder?.upiId || payment.upiId
-                      ? `upi://pay?pa=${selectedOrder?.upiId || payment.upiId}&pn=Delivery&am=${payment.paymentRs}&cu=INR&tr=${payment.checkoutId}`
-                      : `http://localhost:3000/upi-collection/order/${selectedOrder?._id || payment.checkoutId}`
-                  }
+                  value={`upi://pay?pa=${encodeURIComponent(
+                    payment?.upiId || "",
+                  )}&pn=${encodeURIComponent(
+                    "Store Payment",
+                  )}&am=${encodeURIComponent(
+                    String(payment?.paymentRs || 0),
+                  )}&cu=INR&tr=${encodeURIComponent(
+                    payment?.checkoutId || "",
+                  )}`}
                 />
+
+                <Text
+                  style={{
+                    marginTop: 12,
+                    fontSize: 14,
+                    fontWeight: "700",
+                    color: "#374151",
+                  }}
+                >
+                  UPI ID: {payment?.upiId}
+                </Text>
 
                 <Text style={styles.amountText}>₹{payment.paymentRs}</Text>
 
@@ -620,18 +561,12 @@ const styles = StyleSheet.create({
 
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
   },
 
   navTitle: {
     color: "#fff",
     fontSize: 22,
     fontWeight: "900",
-    letterSpacing: -0.4,
   },
 
   navSubtitle: {
@@ -674,14 +609,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 18,
     overflow: "hidden",
-
     backgroundColor: "#fff",
-
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
 
   orderCardGradient: {
@@ -697,15 +625,12 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     marginBottom: 4,
     fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
   },
 
   orderId: {
     fontSize: 15,
     fontWeight: "900",
     color: "#0f172a",
-    letterSpacing: -0.2,
   },
 
   statusBadge: {
@@ -719,10 +644,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
 
     borderRadius: 999,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
 
   statusBadgeText: {
@@ -730,7 +651,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     marginLeft: 8,
-    letterSpacing: 0.25,
   },
 
   infoCard: {
@@ -744,8 +664,6 @@ const styles = StyleSheet.create({
     padding: 12,
 
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
 
   infoIcon: {
@@ -759,8 +677,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#d1fae5",
   },
 
   infoTitle: {
@@ -768,8 +684,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#6b7280",
     marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.2,
   },
 
   infoValue: {
@@ -782,105 +696,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#9ca3af",
     fontSize: 13,
-    fontWeight: "500",
-  },
-
-  deliveryBox: {
-    backgroundColor: "#ecfdf5",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 18,
-    borderWidth: 1.5,
-    borderColor: "#a7f3d0",
-  },
-
-  deliveryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  deliveryTitle: {
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#065f46",
-    letterSpacing: -0.2,
-  },
-
-  deliveryText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 6,
-  },
-
-  deliverySubText: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 5,
-    fontWeight: "500",
-  },
-
-  deliveryNotes: {
-    marginTop: 10,
-    fontSize: 13,
-    color: "#4b5563",
-    fontStyle: "italic",
-    lineHeight: 20,
-  },
-
-  progressSection: {
-    marginBottom: 18,
-  },
-
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: "#0f172a",
-    marginBottom: 16,
-    letterSpacing: -0.2,
-  },
-
-  progressSteps: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  stepContainer: {
-    flex: 1,
-    alignItems: "center",
-  },
-
-  stepIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-
-  stepIconCurrent: {
-    transform: [{ scale: 1.08 }],
-  },
-
-  stepLabel: {
-    marginTop: 10,
-    fontSize: 10,
-    color: "#9ca3af",
-    fontWeight: "700",
-    textAlign: "center",
-    letterSpacing: 0.2,
-  },
-
-  stepLabelCompleted: {
-    color: "#0f172a",
-    fontWeight: "900",
   },
 
   amountRow: {
@@ -890,8 +705,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 18,
     paddingBottom: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f4f8",
   },
 
   amountLabel: {
@@ -910,10 +723,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     marginBottom: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
 
   actionButtonGradient: {
@@ -926,56 +735,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
-    elevation: 2,
-    shadowColor: "#dc2626",
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
   },
 
   buttonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "800",
-    letterSpacing: 0.2,
-  },
-
-  failedContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-
-    marginBottom: 22,
-  },
-
-  failedText: {
-    color: "#dc2626",
-    fontWeight: "900",
-    fontSize: 16,
-    marginLeft: 10,
-    letterSpacing: -0.2,
-  },
-
-  emptyContainer: {
-    alignItems: "center",
-    marginTop: 100,
-    paddingHorizontal: 40,
-  },
-
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    marginTop: 20,
-    color: "#0f172a",
-    letterSpacing: -0.3,
-  },
-
-  emptySubtitle: {
-    marginTop: 10,
-    color: "#6b7280",
-    fontSize: 15,
-    fontWeight: "500",
-    textAlign: "center",
-    lineHeight: 22,
   },
 
   modalContainer: {
@@ -992,10 +757,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 28,
     alignItems: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
   },
 
   modalTitle: {
@@ -1003,7 +764,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginBottom: 24,
     color: "#0f172a",
-    letterSpacing: -0.3,
   },
 
   amountText: {
@@ -1020,9 +780,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
-    elevation: 3,
-    shadowColor: "#16a34a",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
   },
 });
