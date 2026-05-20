@@ -69,13 +69,17 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "left", "right", "bottom"]}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 40}
         style={styles.container}
       >
         <LinearGradient
-          colors={["#f0fff4", "#ffffff", "#ecfdf5"]}
+          colors={["#d1fae5", "#f0fff4", "#ecfdf5"]}
           style={styles.gradient}
         >
           <View style={styles.content}>
@@ -188,9 +192,14 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#d1fae5",
+  },
+
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "transparent",
   },
 
   gradient: {
@@ -199,8 +208,10 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: "center",
+    paddingHorizontal: 18,
+    justifyContent: "flex-start",
+    paddingTop: 30,
+    paddingBottom: 24,
   },
 
   /* HEADER */
@@ -211,34 +222,40 @@ const styles = StyleSheet.create({
   },
 
   logoContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
+    width: 120,
+    height: 120,
+    borderRadius: 90,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 8,
   },
 
   logoImage: {
-    width: 130,
-    height: 130,
-
-    shadowColor: "#16a34a",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    width: 88,
+    height: 88,
+    borderRadius: 70,
   },
 
   title: {
-    fontSize: 36,
+    fontSize: 30,
     fontWeight: "900",
     color: "#0f172a",
-    marginBottom: 10,
-    letterSpacing: -0.8,
+    marginBottom: 8,
+    letterSpacing: -0.6,
   },
 
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#6b7280",
     fontWeight: "600",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 20,
   },
 
   /* FORM CARD */
@@ -247,21 +264,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: "#f0f4f8",
+    borderColor: "#e2f0ea",
 
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 8,
 
     overflow: "hidden",
   },
 
   formCardInner: {
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 32,
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
 
   /* INPUTS */
@@ -271,20 +288,20 @@ const styles = StyleSheet.create({
   },
 
   inputLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
     color: "#6b7280",
-    marginBottom: 10,
+    marginBottom: 8,
     marginLeft: 2,
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },
 
   inputWrapper: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f8faf6",
     borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#e5e7eb",
+    borderWidth: 1,
+    borderColor: "#d9e7d8",
 
     flexDirection: "row",
     alignItems: "center",
@@ -298,9 +315,9 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
     color: "#0f172a",
     fontWeight: "600",
   },
@@ -324,21 +341,23 @@ const styles = StyleSheet.create({
   /* BUTTON */
 
   button: {
-    height: 56,
-    borderRadius: 14,
+    width: 170,
+    height: 40,
+    borderRadius: 12,
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
 
     shadowColor: "#16a34a",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.22,
     shadowRadius: 12,
     elevation: 5,
   },
 
   buttonText: {
     color: "#ffffff",
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0.3,
   },

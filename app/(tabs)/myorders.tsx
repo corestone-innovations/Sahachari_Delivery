@@ -382,6 +382,37 @@ export default function DeliveryOrdersScreen() {
             </View>
           </View>
 
+          {(order.status === "PICKED_UP" || order.status === "DELIVERED") && (
+            <View style={styles.infoCard}>
+              <View style={styles.infoIcon}>
+                <FontAwesome name="map-marker" size={16} color="#3b82f6" />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={styles.infoTitle}>Delivery Address</Text>
+
+                <Text style={styles.infoValue}>
+                  {order.deliveryAddress?.street || "Delivery Address"}
+                </Text>
+
+                {order.deliveryAddress?.city ? (
+                  <Text style={styles.infoSub}>
+                    {order.deliveryAddress.city}
+                    {order.deliveryAddress.zipCode
+                      ? `, ${order.deliveryAddress.zipCode}`
+                      : ""}
+                  </Text>
+                ) : null}
+
+                {order.deliveryAddress?.phone ? (
+                  <Text style={styles.infoSub}>
+                    {order.deliveryAddress.phone}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          )}
+
           <View style={styles.amountRow}>
             <Text style={styles.amountLabel}>Delivery Amount</Text>
 
