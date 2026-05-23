@@ -8,6 +8,7 @@ import {
     RefreshControl,
     ScrollView,
     StyleSheet,
+    Platform,
     TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
@@ -81,6 +82,7 @@ export default function TabOneScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView
+      keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -216,18 +218,20 @@ const styles = StyleSheet.create({
   },
 
   jobCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+  backgroundColor: "#FFFFFF",
+  borderRadius: 20,
+  padding: 24,
+  marginBottom: 14,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 8,
+  ...(Platform.OS !== "web" && {
     elevation: 3,
-    borderWidth: 1,
-    borderColor: "#f0f4f8",
-  },
+  }),
+  borderWidth: 1,
+  borderColor: "#f0f4f8",
+},
 
   cardHeader: {
     flexDirection: "row",
@@ -318,16 +322,18 @@ const styles = StyleSheet.create({
   },
 
   acceptButton: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+  paddingVertical: 16,
+  borderRadius: 14,
+  alignItems: "center",
+  justifyContent: "center",
+  shadowColor: "#4CAF50",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 8,
+  ...(Platform.OS !== "web" && {
     elevation: 5,
-  },
+  }),
+},
 
   acceptButtonText: {
     color: "#FFFFFF",

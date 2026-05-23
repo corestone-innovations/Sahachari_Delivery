@@ -1,27 +1,29 @@
 import { useColorScheme } from "@/components/useColorScheme";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
 } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-import { Image, Platform, StyleSheet, View } from "react-native";
+import { useEffect } from "react";
+import { Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "./contexts/AuthContext";
 
-// Prevent auto-hide so we control the timing
-SplashScreen.preventAutoHideAsync();
+// Enable splash only for native
+if (Platform.OS !== "web") {
+  SplashScreen.preventAutoHideAsync();
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 2,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -32,46 +34,16 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    async function prepare() {
-      try {
-        // Wait for 5 seconds
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      } catch (e) {
-        console.warn(e);
-      } finally {
-        setIsReady(true);
-      }
-    }
-
-    prepare();
-  }, []);
-
-  // Hide splash screen only when BOTH fonts are loaded AND timer is complete
   useEffect(() => {
     if (error) throw error;
 
-    if (loaded && isReady) {
+    if (loaded && Platform.OS !== "web") {
       SplashScreen.hideAsync();
     }
-  }, [loaded, isReady, error]);
+  }, [loaded, error]);
 
-  // Keep showing splash screen until both conditions are met
-  if (!loaded || !isReady) {
-    // Show custom splash for web development testing
-    if (Platform.OS === "web") {
-      return (
-        <View style={styles.splashContainer}>
-          <Image
-            source={require("../assets/images/splashscreen.png")}
-            style={styles.splashImage}
-            resizeMode="contain"
-          />
-        </View>
-      );
-    }
+  // Wait only for fonts
+  if (!loaded) {
     return null;
   }
 
@@ -92,29 +64,14 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Auth screens */}
         <Stack.Screen name="login" />
         <Stack.Screen name="forgot-password" />
-
-        {/* Main app */}
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+        <Stack.Screen
+          name="modal"
+          options={{ presentation: "modal" }}
+        />
       </Stack>
     </ThemeProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  splashContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-  },
-  splashImage: {
-    width: "45%",
-    height: "45%",
-    maxWidth: 500,
-    maxHeight: 500,
-  },
-});

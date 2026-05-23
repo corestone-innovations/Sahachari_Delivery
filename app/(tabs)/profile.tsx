@@ -109,6 +109,36 @@ export default function ProfileScreen() {
     setEditModalVisible(true);
   };
 
+  /* ---------- LOGOUT ---------- */
+
+  const handleLogout = async () => {
+    try {
+      // WEB CONFIRM
+      if (typeof window !== "undefined") {
+        const confirmed = window.confirm("Are you sure you want to logout?");
+
+        if (!confirmed) return;
+      }
+
+      // CLEAR TOKEN
+      await clearAuthToken();
+
+      // CLEAR REACT QUERY CACHE
+      queryClient.clear();
+
+      // REDIRECT
+      router.replace("/login");
+    } catch (error) {
+      console.log("LOGOUT ERROR =>", error);
+
+      if (typeof window !== "undefined") {
+        window.alert("Failed to logout");
+      } else {
+        Alert.alert("Error", "Failed to logout");
+      }
+    }
+  };
+
   return (
     <LinearGradient
       colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
@@ -197,25 +227,8 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={() =>
-            Alert.alert("Logout", "Are you sure?", [
-              {
-                text: "Cancel",
-              },
-
-              {
-                text: "Logout",
-
-                style: "destructive",
-
-                onPress: async () => {
-                  await clearAuthToken();
-
-                  router.replace("/login");
-                },
-              },
-            ])
-          }
+          onPress={handleLogout}
+          activeOpacity={0.8}
         >
           <FontAwesome name="sign-out" size={18} color="#dc2626" />
 

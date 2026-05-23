@@ -1,7 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect } from "react";
-import { Alert, BackHandler, Pressable } from "react-native";
+import { Alert, BackHandler, Pressable, Platform, } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
@@ -43,29 +43,33 @@ export default function TabLayout() {
 
   /* ---------- ANDROID BACK BUTTON ---------- */
 
-  useEffect(() => {
-    const onBackPress = () => {
-      const currentRoute = segments[segments.length - 1] as string;
+ useEffect(() => {
+  // Skip for web
+  if (Platform.OS === "web") return;
 
-      const isHome = currentRoute === "index" || segments.length <= 1;
+  const onBackPress = () => {
+    const currentRoute = segments[segments.length - 1] as string;
 
-      if (isHome) {
-        Alert.alert("Exit App", "Do you want to exit the application?", [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Exit",
-            onPress: () => BackHandler.exitApp(),
-          },
-        ]);
+    const isHome = currentRoute === "index" || segments.length <= 1;
 
-        return true;
-      }
+    if (isHome) {
+      Alert.alert("Exit App", "Do you want to exit the application?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Exit",
+          onPress: () => BackHandler.exitApp(),
+        },
+      ]);
 
-      return false;
-    };
+      return true;
+    }
+
+    return false;
+  };
+
 
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
@@ -99,7 +103,9 @@ export default function TabLayout() {
   };
 
   // Prevent flicker while checking token
-  if (isLoading) return null;
+  if (isLoading) {
+  return null;
+}
 
   return (
     <Tabs

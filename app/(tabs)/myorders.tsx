@@ -15,6 +15,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 
 import { useAuth } from "../contexts/AuthContext";
@@ -441,7 +442,9 @@ export default function DeliveryOrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      {Platform.OS !== "web" && (
+  <StatusBar barStyle="light-content" />
+)}
 
       <LinearGradient colors={["#16a34a", "#166534"]} style={styles.navbar}>
         <View>
@@ -463,6 +466,7 @@ export default function DeliveryOrdersScreen() {
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -474,7 +478,12 @@ export default function DeliveryOrdersScreen() {
 
       {/* ================= QR MODAL ================= */}
 
-      <Modal visible={showQR} transparent animationType="slide">
+      <Modal
+  visible={showQR}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowQR(false)}
+>
         <View style={styles.modalContainer}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Collect Payment</Text>
@@ -785,6 +794,7 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: "#fff",
     width: "86%",
+    maxWidth: 420,
     borderRadius: 28,
     padding: 28,
     alignItems: "center",
@@ -811,5 +821,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
+    ...(Platform.OS === "web" && {
+    cursor: "pointer",
+  }),
   },
 });
