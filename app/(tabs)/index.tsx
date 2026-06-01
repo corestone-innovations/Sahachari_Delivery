@@ -3,12 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { apiRequest } from "../services/api";
@@ -21,10 +21,7 @@ type Job = {
   storeId?: {
     name?: string;
   };
-  deliveryAddress?: {
-    street?: string;
-    city?: string;
-  };
+  deliveryAddress?: Record<string, any>;
 };
 
 /* ================= SCREEN ================= */
@@ -32,6 +29,14 @@ type Job = {
 export default function TabOneScreen() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
+
+  const formatKey = (k: string) =>
+    k
+      .replace(/([A-Z])/g, " $1")
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
 
   /* ---------- FETCH AVAILABLE JOBS ---------- */
   const {
@@ -136,7 +141,7 @@ export default function TabOneScreen() {
               >
                 <Text style={styles.zoneLabel}>📍 ZONE</Text>
                 <Text style={styles.zoneValue}>
-                  {job.deliveryAddress?.street ?? "Zone"}
+                  {job.deliveryAddress?.place ?? "Zone"}
                 </Text>
               </LinearGradient>
 
@@ -148,9 +153,23 @@ export default function TabOneScreen() {
                   <Text style={styles.jobStore}>
                     {job.storeId?.name ?? "Store"}
                   </Text>
-                  <Text style={styles.jobAddress}>
-                    {job.deliveryAddress?.city ?? "—"}
-                  </Text>
+
+                  {job.deliveryAddress ? (
+                    <View style={styles.addressDetails}>
+                      {Object.entries(job.deliveryAddress).map(([key, val]) =>
+                        val || val === 0 ? (
+                          <Text style={styles.jobAddress} key={key}>
+                            <Text style={styles.addressKey}>
+                              {formatKey(key)}:{" "}
+                            </Text>
+                            {String(val)}
+                          </Text>
+                        ) : null,
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={styles.jobAddress}>—</Text>
+                  )}
                 </View>
               </View>
 
@@ -326,6 +345,16 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontWeight: "500",
     lineHeight: 20,
+  },
+
+  addressDetails: {
+    marginTop: 6,
+  },
+
+  addressKey: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "700",
   },
 
   divider: {
