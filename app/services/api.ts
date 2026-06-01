@@ -12,8 +12,10 @@ export async function apiRequest<T>(
   options: ApiRequestOptions = {},
 ): Promise<T> {
   const { requiresAuth = true, headers = {}, ...restOptions } = options;
+  const body = restOptions.body;
+  const isFormData = body instanceof FormData;
   const requestHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(headers as Record<string, string>),
   };
 

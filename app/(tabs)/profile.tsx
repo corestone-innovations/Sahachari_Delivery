@@ -5,11 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 
-import React, { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import React, { useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   RefreshControl,
   ScrollView,
@@ -30,6 +32,7 @@ type UserProfile = {
   role?: string;
   address?: string;
   mobileNumber?: string;
+  profilePicture?: string;
 
   // PINCODES
   serviceablePincodes?: string[];
@@ -68,6 +71,75 @@ export default function ProfileScreen() {
     enabled: !!token,
   });
 
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  useEffect(() => {
+    if (user?.profilePicture) {
+      setPhotoUri(user.profilePicture);
+    }
+  }, [user?.profilePicture]);
+
+  const pickProfilePhoto = async () => {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission required",
+          "Please allow access to your photos to update your profile picture.",
+        );
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if ((pickerResult as any).canceled) {
+        return;
+      }
+
+      const selectedAsset = Array.isArray((pickerResult as any).assets)
+        ? (pickerResult as any).assets[0]
+        : (pickerResult as any);
+
+      const uri = selectedAsset?.uri;
+      if (!uri) {
+        return;
+      }
+
+      setPhotoUri(uri);
+
+      const filename = uri.split("/").pop() || "profile.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1].toLowerCase()}` : "image/jpeg";
+
+      const formData = new FormData();
+      formData.append("photo", {
+        uri,
+        name: filename,
+        type,
+      } as any);
+
+      setUploadingPhoto(true);
+      await apiRequest("/users/update-me", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["myProfile"] });
+      Alert.alert("Success", "Profile picture updated!");
+    } catch (error: any) {
+      Alert.alert("Upload Failed", error?.message || "Unable to update photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   /* ---------- UPDATE MUTATION ---------- */
 
   const updateMutation = useMutation({
@@ -101,6 +173,31 @@ export default function ProfileScreen() {
     setRefreshing(false);
   };
 
+  const isSaveDisabled =
+    updateMutation.isPending ||
+    !editValue.trim() ||
+    (editingField === "mobileNumber" && !/^[0-9]{10}$/.test(editValue.trim()));
+
+  const handleSave = () => {
+    if (!editingField) return;
+
+    const trimmedValue = editValue.trim();
+
+    if (!trimmedValue) {
+      Alert.alert("Validation", "This field is required.");
+      return;
+    }
+
+    if (editingField === "mobileNumber" && !/^[0-9]{10}$/.test(trimmedValue)) {
+      Alert.alert("Validation", "Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    updateMutation.mutate({
+      [editingField]: trimmedValue,
+    });
+  };
+
   const openEdit = (field: EditableField, currentVal: string = "") => {
     setEditingField(field);
 
@@ -111,7 +208,7 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
+      colors={["#f8fffe", "#f8fdfb", "#effaf4"]}
       style={{ flex: 1 }}
     >
       <ScrollView
@@ -124,15 +221,29 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* ---------- PROFILE HEADER ---------- */}
-
         <View style={styles.profileHeaderCard}>
-          <LinearGradient
-            colors={["#7ed957", "#4CAF50"]}
-            style={styles.avatarGradient}
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={pickProfilePhoto}
+            activeOpacity={0.8}
           >
-            <FontAwesome name="user" size={40} color="#FFFFFF" />
-          </LinearGradient>
+            <LinearGradient
+              colors={["#6ccf85", "#4CAF50"]}
+              style={styles.avatarGradient}
+            >
+              {uploadingPhoto ? (
+                <ActivityIndicator color="#fff" />
+              ) : photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+              ) : (
+                <FontAwesome name="user" size={42} color="#FFFFFF" />
+              )}
+            </LinearGradient>
+
+            <View style={styles.cameraBadge}>
+              <FontAwesome name="camera" size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
 
           <View style={styles.headerInfo}>
             <Text style={styles.userName}>{user?.name || "User"}</Text>
@@ -147,9 +258,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ---------- CONTACT INFO ---------- */}
-
         <Text style={styles.sectionLabel}>Contact Information</Text>
+        <Text style={styles.sectionDescription}>
+          Keep your phone number and address up to date for delivery
+          notifications.
+        </Text>
 
         <View style={styles.detailsCard}>
           {/* MOBILE */}
@@ -260,14 +373,9 @@ export default function ProfileScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={() =>
-                  editingField &&
-                  updateMutation.mutate({
-                    [editingField]: editValue,
-                  })
-                }
-                disabled={updateMutation.isPending}
+                style={[styles.saveBtn, isSaveDisabled && { opacity: 0.65 }]}
+                onPress={handleSave}
+                disabled={isSaveDisabled}
               >
                 {updateMutation.isPending ? (
                   <ActivityIndicator color="#fff" />
@@ -288,12 +396,12 @@ export default function ProfileScreen() {
 function EditableRow({ icon, label, value, onPress }: any) {
   return (
     <TouchableOpacity
-      style={styles.infoRow}
+      style={[styles.infoRow, styles.rowItem]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
       <View style={styles.iconBox}>
-        <FontAwesome name={icon} size={16} color="#4CAF50" />
+        <FontAwesome name={icon} size={18} color="#4CAF50" />
       </View>
 
       <View style={{ flex: 1 }}>
@@ -304,7 +412,7 @@ function EditableRow({ icon, label, value, onPress }: any) {
         </Text>
       </View>
 
-      <FontAwesome name="angle-right" size={20} color="#cbd5e1" />
+      <FontAwesome name="angle-right" size={20} color="#94a3b8" />
     </TouchableOpacity>
   );
 }
@@ -320,31 +428,31 @@ const styles = StyleSheet.create({
 
   profileHeaderCard: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 28,
     padding: 24,
     alignItems: "center",
-    marginBottom: 28,
-    elevation: 2,
-    shadowColor: "#000",
+    marginBottom: 20,
+    elevation: 6,
+    shadowColor: "#0f172a",
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
     borderWidth: 1,
-    borderColor: "#f0f4f8",
+    borderColor: "#e6f4ea",
   },
 
   avatarGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 20,
     elevation: 3,
     shadowColor: "#4CAF50",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
   },
 
   headerInfo: {
@@ -352,15 +460,15 @@ const styles = StyleSheet.create({
   },
 
   userName: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "900",
     color: "#0f172a",
     letterSpacing: -0.5,
   },
 
   userEmail: {
-    fontSize: 13,
-    color: "#6b7280",
+    fontSize: 14,
+    color: "#475569",
     marginTop: 6,
     fontWeight: "500",
   },
@@ -384,33 +492,47 @@ const styles = StyleSheet.create({
   },
 
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#4CAF50",
-    marginBottom: 14,
-    marginLeft: 4,
+    fontSize: 13,
+    fontWeight: "900",
+    color: "#16a34a",
+    marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
 
+  sectionDescription: {
+    fontSize: 14,
+    color: "#475569",
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+
   detailsCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
-    elevation: 2,
-    shadowColor: "#000",
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 22,
+    elevation: 4,
+    shadowColor: "#0f172a",
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
     borderWidth: 1,
-    borderColor: "#f0f4f8",
-    marginBottom: 24,
+    borderColor: "#eef2ff",
+    marginBottom: 28,
   },
 
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: 12,
+  },
+
+  rowItem: {
+    backgroundColor: "#f8fdf8",
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#dcfce7",
   },
 
   iconBox: {
@@ -451,15 +573,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 2,
+    borderRadius: 18,
+    backgroundColor: "#fff5f5",
+    borderWidth: 1,
     borderColor: "#fecaca",
     gap: 10,
-    backgroundColor: "#fef2f2",
-    elevation: 1,
-    shadowColor: "#dc2626",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    elevation: 2,
+    shadowColor: "#b91c1c",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    marginTop: 8,
   },
 
   logoutText: {
@@ -544,5 +668,30 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "800",
     fontSize: 16,
+  },
+
+  avatarWrapper: {
+    position: "relative",
+    marginRight: 20,
+  },
+
+  avatarImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+  },
+
+  cameraBadge: {
+    position: "absolute",
+    right: 8,
+    bottom: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(16, 185, 129, 0.95)",
+    borderWidth: 2,
+    borderColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

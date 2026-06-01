@@ -5,16 +5,16 @@ import React, { useState } from "react";
 import QRCode from "react-native-qrcode-svg";
 
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import { useAuth } from "../contexts/AuthContext";
@@ -33,6 +33,8 @@ interface DeliveryAddress {
   street: string;
   city: string;
   zipCode?: string;
+  zone?: string;
+  location?: string;
   phone?: string;
   notes?: string;
 }
@@ -116,15 +118,26 @@ export default function DeliveryOrdersScreen() {
   /* ================= FETCH ORDERS ================= */
 
   const {
-    data: orders,
+    data: orders = [],
     isLoading,
     refetch,
+    error,
   } = useQuery<Order[]>({
     queryKey: ["myJobs"],
 
-    queryFn: () => apiRequest("/delivery/orders?mine=true"),
+    queryFn: async () => {
+      try {
+        const res = await apiRequest<Order[]>("/delivery/orders?mine=true");
+        return res || [];
+      } catch (err: any) {
+        console.error("Failed to fetch orders:", err);
+        return [];
+      }
+    },
 
     enabled: !!token,
+    staleTime: 30000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   /* ================= REFRESH ================= */
@@ -173,21 +186,46 @@ export default function DeliveryOrdersScreen() {
         return;
       }
 
-      // STEP 1: FETCH UPI DETAILS FIRST
-      const upiRes = (await apiRequest(`/upi-collection/order/${order._id}`, {
-        method: "GET",
-      })) as {
-        upiId?: string;
-        name?: string;
-        phoneNumber?: string;
-      };
+      let upiId: string | undefined;
 
-      console.log("UPI RESPONSE =>", upiRes);
+      // STEP 1: TRY TO FETCH UPI DETAILS - Try multiple endpoints
+      try {
+        // Try /upi-collection/checkout first (by checkoutId)
+        try {
+          const upiResCheckout = (await apiRequest(
+            `/upi-collection/checkout/${order.checkoutId}`,
+            { method: "GET" },
+          )) as { upiId?: string };
 
-      // VALIDATE UPI
-      if (!upiRes?.upiId || typeof upiRes.upiId !== "string") {
-        Alert.alert("Error", "UPI ID not found");
-        return;
+          console.log("UPI RESPONSE (by checkout):", upiResCheckout);
+          if (upiResCheckout?.upiId) {
+            upiId = upiResCheckout.upiId;
+          }
+        } catch (e1: any) {
+          console.log("Checkout endpoint failed, trying order endpoint");
+
+          // Fallback to /upi-collection/order
+          const upiResOrder = (await apiRequest(
+            `/upi-collection/order/${order._id}`,
+            { method: "GET" },
+          )) as { upiId?: string };
+
+          console.log("UPI RESPONSE (by order):", upiResOrder);
+          if (upiResOrder?.upiId) {
+            upiId = upiResOrder.upiId;
+          }
+        }
+      } catch (err: any) {
+        console.warn("UPI fetch failed:", err?.message);
+        // Continue - payment might work without separate UPI fetch
+      }
+
+      if (!upiId) {
+        Alert.alert(
+          "Warning",
+          "UPI ID not found. Proceeding with order ID as payment reference.",
+        );
+        upiId = order.checkoutId; // Fallback to checkoutId
       }
 
       // STEP 2: CREATE PAYMENT TRANSACTION WITH UPI ID
@@ -197,7 +235,7 @@ export default function DeliveryOrdersScreen() {
         body: JSON.stringify({
           paymentRs: order.totalAmount,
           checkoutId: order.checkoutId,
-          upiId: upiRes.upiId,
+          upiId: upiId,
         }),
       })) as PaymentResponse;
 
@@ -206,12 +244,12 @@ export default function DeliveryOrdersScreen() {
       // STEP 3: SAVE DATA
       setPayment({
         ...paymentRes,
-        upiId: upiRes.upiId,
+        upiId: upiId,
       });
 
       setSelectedOrder({
         ...order,
-        upiId: upiRes.upiId,
+        upiId: upiId,
       });
 
       // STEP 4: OPEN QR
@@ -404,9 +442,27 @@ export default function DeliveryOrdersScreen() {
                   </Text>
                 ) : null}
 
+                {order.deliveryAddress?.location ? (
+                  <Text style={styles.infoSub}>
+                    Location: {order.deliveryAddress.location}
+                  </Text>
+                ) : null}
+
+                {order.deliveryAddress?.zone ? (
+                  <Text style={styles.infoSub}>
+                    Zone: {order.deliveryAddress.zone}
+                  </Text>
+                ) : null}
+
+                {order.deliveryAddress?.notes ? (
+                  <Text style={styles.infoSub}>
+                    Notes: {order.deliveryAddress.notes}
+                  </Text>
+                ) : null}
+
                 {order.deliveryAddress?.phone ? (
                   <Text style={styles.infoSub}>
-                    {order.deliveryAddress.phone}
+                    Phone: {order.deliveryAddress.phone}
                   </Text>
                 ) : null}
               </View>

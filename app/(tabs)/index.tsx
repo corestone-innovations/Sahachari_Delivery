@@ -40,8 +40,30 @@ export default function TabOneScreen() {
     refetch,
   } = useQuery<Job[]>({
     queryKey: ["availableJobs"],
-    queryFn: () => apiRequest("/delivery/orders?status=READY"),
+    queryFn: async () => {
+      try {
+        // Try primary endpoint first
+        try {
+          const res = await apiRequest<Job[]>("/delivery/orders?status=READY");
+          console.log("Available jobs fetched:", res);
+          return res || [];
+        } catch (e1: any) {
+          console.warn("Status=READY failed, trying alternate endpoint");
+          // Fallback: fetch all and filter
+          const res = await apiRequest<Job[]>("/delivery/orders");
+          const available = (res || []).filter(
+            (job: any) => job.status === "READY",
+          );
+          return available;
+        }
+      } catch (err: any) {
+        console.error("Failed to fetch available jobs:", err?.message);
+        return [];
+      }
+    },
     enabled: !!token,
+    staleTime: 20000, // 20 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   /* ---------- ACCEPT JOB ---------- */
@@ -107,6 +129,17 @@ export default function TabOneScreen() {
         ) : jobs.length > 0 ? (
           jobs.map((job) => (
             <View key={job._id} style={styles.jobCard}>
+              {/* ========== ZONE BADGE (TOP HIGHLIGHT) ========== */}
+              <LinearGradient
+                colors={["#10b981", "#059669"]}
+                style={styles.zoneBadge}
+              >
+                <Text style={styles.zoneLabel}>📍 ZONE</Text>
+                <Text style={styles.zoneValue}>
+                  {job.deliveryAddress?.street ?? "Zone"}
+                </Text>
+              </LinearGradient>
+
               <View style={styles.cardHeader}>
                 <View style={styles.storeIconContainer}>
                   <Text style={styles.storeIcon}>🏪</Text>
@@ -116,8 +149,7 @@ export default function TabOneScreen() {
                     {job.storeId?.name ?? "Store"}
                   </Text>
                   <Text style={styles.jobAddress}>
-                    {job.deliveryAddress?.street ?? "—"},{" "}
-                    {job.deliveryAddress?.city ?? ""}
+                    {job.deliveryAddress?.city ?? "—"}
                   </Text>
                 </View>
               </View>
@@ -218,7 +250,7 @@ const styles = StyleSheet.create({
   jobCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: 24,
+    padding: 0,
     marginBottom: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -227,12 +259,38 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: "#f0f4f8",
+    overflow: "hidden",
+  },
+
+  zoneBadge: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+
+  zoneLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.85)",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+
+  zoneValue: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#ffffff",
+    letterSpacing: -0.4,
   },
 
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 18,
+    paddingHorizontal: 20,
+    paddingTop: 18,
   },
 
   storeIconContainer: {
@@ -274,10 +332,12 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#f0f4f8",
     marginBottom: 18,
+    marginHorizontal: 20,
   },
 
   detailsContainer: {
     marginBottom: 20,
+    paddingHorizontal: 20,
   },
 
   detailRow: {
@@ -327,6 +387,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+    marginHorizontal: 20,
+    marginBottom: 20,
   },
 
   acceptButtonText: {
