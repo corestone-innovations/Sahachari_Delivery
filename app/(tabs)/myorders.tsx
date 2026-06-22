@@ -5,16 +5,16 @@ import React, { useState } from "react";
 import QRCode from "react-native-qrcode-svg";
 
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    RefreshControl,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { useAuth } from "../contexts/AuthContext";
@@ -109,11 +109,15 @@ export default function DeliveryOrdersScreen() {
 
   const [showQR, setShowQR] = useState(false);
 
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
 
   const [creatingPayment, setCreatingPayment] = useState(false);
+
+  const [processingCash, setProcessingCash] = useState(false);
 
   /* ================= FETCH ORDERS ================= */
 
@@ -179,10 +183,20 @@ export default function DeliveryOrdersScreen() {
 
   const createPayment = async (order: Order) => {
     try {
+      setShowPaymentOptions(false);
+
+      if (payment?.checkoutId === order.checkoutId) {
+        setSelectedOrder(order);
+        setShowQR(true);
+        return;
+      }
+
       setCreatingPayment(true);
+      setPayment(null);
 
       if (!order.checkoutId) {
         Alert.alert("Error", "Checkout ID missing");
+        setCreatingPayment(false);
         return;
       }
 
@@ -221,42 +235,57 @@ export default function DeliveryOrdersScreen() {
       }
 
       if (!upiId) {
-        Alert.alert(
-          "Warning",
-          "UPI ID not found. Proceeding with order ID as payment reference.",
-        );
-        upiId = order.checkoutId; // Fallback to checkoutId
+        Alert.alert("Error", "UPI ID not found. Cannot generate QR code.");
+        return;
       }
 
       // STEP 2: CREATE PAYMENT TRANSACTION WITH UPI ID
-      const paymentRes = (await apiRequest("/payment-transactions", {
-        method: "POST",
+      let paymentRes: PaymentResponse | null = null;
+      let paymentErrorMessage: string | null = null;
 
-        body: JSON.stringify({
-          paymentRs: order.totalAmount,
-          checkoutId: order.checkoutId,
-          upiId: upiId,
-        }),
-      })) as PaymentResponse;
+      try {
+        paymentRes = (await apiRequest("/payment-transactions", {
+          method: "POST",
+          body: JSON.stringify({
+            paymentRs: order.totalAmount,
+            checkoutId: order.checkoutId,
+            upiId: upiId,
+          }),
+        })) as PaymentResponse;
 
-      console.log("PAYMENT RESPONSE =>", paymentRes);
+        console.log("PAYMENT RESPONSE =>", paymentRes);
+      } catch (err: any) {
+        paymentErrorMessage =
+          err?.message || "Unable to create payment transaction.";
+        console.warn(
+          "Payment creation failed, using UPI ID QR:",
+          paymentErrorMessage,
+        );
+      }
 
-      // STEP 3: SAVE DATA
-      setPayment({
-        ...paymentRes,
-        upiId: upiId,
-      });
+      const finalPayment: PaymentResponse = paymentRes
+        ? { ...paymentRes, upiId: upiId }
+        : {
+            checkoutId: order.checkoutId,
+            paymentRs: order.totalAmount,
+            upiId,
+          };
 
+      setPayment(finalPayment);
       setSelectedOrder({
         ...order,
         upiId: upiId,
       });
-
-      // STEP 4: OPEN QR
       setShowQR(true);
+
+      if (paymentErrorMessage) {
+        Alert.alert(
+          "Notice",
+          "QR code generated from UPI ID. Payment transaction creation failed, but the QR is still usable.",
+        );
+      }
     } catch (err: any) {
       console.log("PAYMENT ERROR =>", err);
-
       Alert.alert("Error", err?.message || "Unable to create payment");
     } finally {
       setCreatingPayment(false);
@@ -264,6 +293,47 @@ export default function DeliveryOrdersScreen() {
   };
 
   /* ================= HELPERS ================= */
+
+  const collectCashPayment = async (order: Order) => {
+    Alert.alert(
+      "Confirm",
+      "Confirm cash payment received and mark order delivered?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              setProcessingCash(true);
+
+              await statusMutation.mutateAsync({
+                jobId: order._id,
+                action: "deliver",
+              });
+
+              setShowPaymentOptions(false);
+              setSelectedOrder(null);
+
+              Alert.alert(
+                "Success",
+                "Cash payment collected and order completed",
+              );
+            } catch (err: any) {
+              Alert.alert(
+                "Error",
+                err?.message || "Failed to update order status",
+              );
+            } finally {
+              setProcessingCash(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const getCurrentStepIndex = (status: string) => {
     if (status === "FAILED") {
@@ -304,14 +374,20 @@ export default function DeliveryOrdersScreen() {
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.85}
-            onPress={() => !creatingPayment && createPayment(order)}
-            disabled={creatingPayment}
+            onPress={() => {
+              setSelectedOrder(order);
+              if (payment?.checkoutId !== order.checkoutId) {
+                setPayment(null);
+              }
+              setShowPaymentOptions(true);
+            }}
+            disabled={creatingPayment || processingCash}
           >
             <LinearGradient
               colors={["#22c55e", "#15803d"]}
               style={styles.actionButtonGradient}
             >
-              {creatingPayment ? (
+              {creatingPayment || processingCash ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={styles.buttonText}>Collect Payment</Text>
@@ -528,6 +604,52 @@ export default function DeliveryOrdersScreen() {
         }
       />
 
+      {/* ================= PAYMENT OPTIONS MODAL ================= */}
+
+      <Modal visible={showPaymentOptions} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Collect Payment</Text>
+
+            <TouchableOpacity
+              style={styles.paymentOptionButton}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (selectedOrder) {
+                  createPayment(selectedOrder);
+                }
+              }}
+              disabled={creatingPayment || processingCash}
+            >
+              <Text style={styles.paymentOptionText}>Generate QR Code</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.paymentOptionButton}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (selectedOrder) {
+                  collectCashPayment(selectedOrder);
+                }
+              }}
+              disabled={creatingPayment || processingCash}
+            >
+              <Text style={styles.paymentOptionText}>Collect Cash</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ marginTop: 6 }}
+              onPress={() => {
+                setShowPaymentOptions(false);
+                setSelectedOrder(null);
+              }}
+            >
+              <Text style={{ color: "red", fontWeight: "700" }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* ================= QR MODAL ================= */}
 
       <Modal visible={showQR} transparent animationType="slide">
@@ -565,35 +687,47 @@ export default function DeliveryOrdersScreen() {
 
                 <TouchableOpacity
                   style={styles.confirmButton}
-                  onPress={async () => {
-                    try {
-                      await apiRequest(
-                        `/payment-transactions/${payment.checkoutId}/status`,
+                  onPress={() => {
+                    Alert.alert(
+                      "Confirm",
+                      "Confirm payment received and mark order delivered?",
+                      [
                         {
-                          method: "PATCH",
-
-                          body: JSON.stringify({
-                            status: "SUCCESS",
-                          }),
+                          text: "Cancel",
+                          style: "cancel",
                         },
-                      );
+                        {
+                          text: "Yes",
+                          onPress: async () => {
+                            try {
+                              await apiRequest(
+                                `/payment-transactions/${payment.checkoutId}/status`,
+                                {
+                                  method: "PATCH",
 
-                      await statusMutation.mutateAsync({
-                        jobId: selectedOrder!._id,
+                                  body: JSON.stringify({
+                                    status: "SUCCESS",
+                                  }),
+                                },
+                              );
 
-                        action: "deliver",
-                      });
+                              await statusMutation.mutateAsync({
+                                jobId: selectedOrder!._id,
+                                action: "deliver",
+                              });
 
-                      setShowQR(false);
+                              setShowQR(false);
+                              setPayment(null);
+                              setSelectedOrder(null);
 
-                      setPayment(null);
-
-                      setSelectedOrder(null);
-
-                      Alert.alert("Success", "Payment received");
-                    } catch (err: any) {
-                      Alert.alert("Error", err.message);
-                    }
+                              Alert.alert("Success", "Payment received");
+                            } catch (err: any) {
+                              Alert.alert("Error", err.message);
+                            }
+                          },
+                        },
+                      ],
+                    );
                   }}
                 >
                   <Text style={styles.buttonText}>Payment Received</Text>
@@ -605,10 +739,6 @@ export default function DeliveryOrdersScreen() {
                   }}
                   onPress={() => {
                     setShowQR(false);
-
-                    setPayment(null);
-
-                    setSelectedOrder(null);
                   }}
                 >
                   <Text
@@ -851,6 +981,21 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginBottom: 24,
     color: "#0f172a",
+  },
+
+  paymentOptionButton: {
+    width: "100%",
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    marginBottom: 12,
+    backgroundColor: "#ecfdf5",
+  },
+
+  paymentOptionText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#166534",
   },
 
   amountText: {

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700">
+  <rect width="1400" height="700" fill="white"/>
+  <text x="700" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="black">Level 0 Data Flow Diagram - Sahachari Delivery</text>
+
+  <rect x="120" y="250" width="260" height="90" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="250" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Customer / Delivery</text>
+  <text x="250" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Person</text>
+
+  <rect x="570" y="250" width="260" height="90" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="700" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Sahachari Delivery</text>
+  <text x="700" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">System</text>
+
+  <rect x="1020" y="160" width="240" height="90" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1140" y="202" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Admin / Manager</text>
+
+  <rect x="1020" y="360" width="240" height="90" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1140" y="402" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">User Database</text>
+
+  <rect x="1020" y="480" width="240" height="90" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1140" y="522" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Order Database</text>
+
+  <rect x="1020" y="600" width="240" height="90" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1140" y="642" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Payment Database</text>
+
+  <line x1="380" y1="295" x2="570" y2="295" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="830" y1="295" x2="1020" y2="205" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="830" y1="295" x2="1020" y2="405" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="830" y1="295" x2="1020" y2="525" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="830" y1="295" x2="1020" y2="645" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <line x1="700" y1="340" x2="700" y2="420" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="705" y="385" font-family="Arial, sans-serif" font-size="16" fill="black">Order confirmation / status</text>
+
+  <line x1="830" y1="295" x2="1020" y2="205" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="900" y="240" font-family="Arial, sans-serif" font-size="16" fill="black">Manage users / orders / payments</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="black"/>
+    </marker>
+  </defs>
+</svg>

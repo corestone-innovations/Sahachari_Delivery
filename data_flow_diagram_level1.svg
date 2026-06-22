@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100">
+  <rect width="1800" height="1100" fill="white"/>
+  <text x="900" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="bold" fill="black">Level 1 Data Flow Diagram - Sahachari Delivery</text>
+
+  <rect x="120" y="220" width="260" height="100" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="250" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">User / Customer</text>
+  <text x="250" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Interface</text>
+
+  <rect x="500" y="220" width="280" height="100" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="640" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Authentication</text>
+  <text x="640" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Module</text>
+
+  <rect x="860" y="220" width="280" height="100" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1000" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Order Management</text>
+  <text x="1000" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Module</text>
+
+  <rect x="1220" y="220" width="280" height="100" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1360" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Payment</text>
+  <text x="1360" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Module</text>
+
+  <rect x="680" y="430" width="280" height="100" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="820" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Tracking /</text>
+  <text x="820" y="502" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Status Module</text>
+
+  <rect x="1040" y="430" width="280" height="100" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1180" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Profile /</text>
+  <text x="1180" y="502" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Settings Module</text>
+
+  <rect x="700" y="760" width="300" height="110" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="850" y="802" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">User Database</text>
+
+  <rect x="1060" y="760" width="300" height="110" rx="8" ry="8" fill="white" stroke="black" stroke-width="2"/>
+  <text x="1210" y="802" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="black">Order / Payment Database</text>
+
+  <line x1="380" y1="270" x2="500" y2="270" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="780" y1="270" x2="860" y2="270" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1140" y1="270" x2="1220" y2="270" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <line x1="1000" y1="320" x2="820" y2="430" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1000" y1="320" x2="1180" y2="430" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <line x1="820" y1="530" x2="850" y2="760" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1180" y1="530" x2="1210" y2="760" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <line x1="700" y1="760" x2="640" y2="320" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1060" y1="760" x2="1360" y2="320" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <text x="420" y="248" font-family="Arial, sans-serif" font-size="16" fill="black">Login / Request</text>
+  <text x="810" y="248" font-family="Arial, sans-serif" font-size="16" fill="black">Order Data</text>
+  <text x="1180" y="248" font-family="Arial, sans-serif" font-size="16" fill="black">Payment Details</text>
+  <text x="920" y="390" font-family="Arial, sans-serif" font-size="16" fill="black">Tracking Info</text>
+  <text x="1170" y="390" font-family="Arial, sans-serif" font-size="16" fill="black">Profile Data</text>
+  <text x="820" y="720" font-family="Arial, sans-serif" font-size="16" fill="black">User Records</text>
+  <text x="1210" y="720" font-family="Arial, sans-serif" font-size="16" fill="black">Order & Payment Records</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="black"/>
+    </marker>
+  </defs>
+</svg>
