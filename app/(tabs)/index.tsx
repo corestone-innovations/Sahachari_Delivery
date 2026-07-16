@@ -9,9 +9,13 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Platform,
+  View as RNView,
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { apiRequest } from "../services/api";
+import { Tabs, useRouter } from "expo-router";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 /* ================= TYPES ================= */
 
 type Job = {
@@ -27,8 +31,35 @@ type Job = {
 /* ================= SCREEN ================= */
 
 export default function TabOneScreen() {
-  const { token } = useAuth();
+  const { token, clearAuthToken } = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    if (Platform.OS === "web") {
+      const confirmLogout = window.confirm("Are you sure you want to logout?");
+      if (confirmLogout) {
+        clearAuthToken().then(() => {
+          router.replace("/login");
+        });
+      }
+    } else {
+      Alert.alert("Logout", "Are you sure you want to logout?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            await clearAuthToken();
+            router.replace("/login");
+          },
+        },
+      ]);
+    }
+  };
 
   const formatKey = (k: string) =>
     k
@@ -107,6 +138,28 @@ export default function TabOneScreen() {
       colors={["#f8fffe", "#ffffff", "#f0fdf9"]}
       style={{ flex: 1 }}
     >
+      <Tabs.Screen
+        options={{
+          headerRight: () => (
+            <RNView style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }}>
+              <TouchableOpacity
+                onPress={onRefresh}
+                style={{ marginRight: 18 }}
+                disabled={refreshing}
+              >
+                {refreshing ? (
+                  <ActivityIndicator size="small" color="#1a472a" />
+                ) : (
+                  <FontAwesome name="refresh" size={18} color="#1a472a" />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout}>
+                <FontAwesome name="sign-out" size={20} color="#1a472a" />
+              </TouchableOpacity>
+            </RNView>
+          ),
+        }}
+      />
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}

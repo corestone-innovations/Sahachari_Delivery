@@ -13,6 +13,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -310,25 +311,34 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={() =>
-            Alert.alert("Logout", "Are you sure?", [
-              {
-                text: "Cancel",
-              },
-
-              {
-                text: "Logout",
-
-                style: "destructive",
-
-                onPress: async () => {
-                  await clearAuthToken();
-
+          onPress={() => {
+            if (Platform.OS === "web") {
+              const confirmLogout = window.confirm("Are you sure you want to logout?");
+              if (confirmLogout) {
+                clearAuthToken().then(() => {
                   router.replace("/login");
+                });
+              }
+            } else {
+              Alert.alert("Logout", "Are you sure?", [
+                {
+                  text: "Cancel",
                 },
-              },
-            ])
-          }
+
+                {
+                  text: "Logout",
+
+                  style: "destructive",
+
+                  onPress: async () => {
+                    await clearAuthToken();
+
+                    router.replace("/login");
+                  },
+                },
+              ]);
+            }
+          }}
         >
           <FontAwesome name="sign-out" size={18} color="#dc2626" />
 

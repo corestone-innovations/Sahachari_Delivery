@@ -1,7 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect } from "react";
-import { Alert, BackHandler, Pressable } from "react-native";
+import { Alert, BackHandler, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
@@ -78,24 +78,33 @@ export default function TabLayout() {
   /* ---------- LOGOUT ---------- */
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-
-      {
-        text: "Logout",
-        style: "destructive",
-
-        onPress: async () => {
-          await clearAuthToken();
-
-          // Redirect to LOGIN page
+    if (Platform.OS === "web") {
+      const confirmLogout = window.confirm("Are you sure you want to logout?");
+      if (confirmLogout) {
+        clearAuthToken().then(() => {
           router.replace("/login");
+        });
+      }
+    } else {
+      Alert.alert("Logout", "Are you sure you want to logout?", [
+        {
+          text: "Cancel",
+          style: "cancel",
         },
-      },
-    ]);
+
+        {
+          text: "Logout",
+          style: "destructive",
+
+          onPress: async () => {
+            await clearAuthToken();
+
+            // Redirect to LOGIN page
+            router.replace("/login");
+          },
+        },
+      ]);
+    }
   };
 
   // Prevent flicker while checking token
@@ -105,6 +114,21 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown,
+
+        headerRight: () => (
+          <Pressable onPress={handleLogout} style={{ marginRight: 16 }}>
+            {({ pressed }) => (
+              <FontAwesome
+                name="sign-out"
+                size={20}
+                color="#1a472a"
+                style={{
+                  opacity: pressed ? 0.5 : 1,
+                }}
+              />
+            )}
+          </Pressable>
+        ),
 
         /* TAB BAR */
 
@@ -169,21 +193,6 @@ export default function TabLayout() {
           title: "Home",
 
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-
-          headerRight: () => (
-            <Pressable onPress={handleLogout} style={{ marginRight: 16 }}>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="sign-out"
-                  size={20}
-                  color="#1a472a"
-                  style={{
-                    opacity: pressed ? 0.5 : 1,
-                  }}
-                />
-              )}
-            </Pressable>
-          ),
         }}
       />
 

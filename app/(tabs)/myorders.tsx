@@ -9,6 +9,7 @@ import {
   Alert,
   FlatList,
   Modal,
+  Platform,
   RefreshControl,
   StatusBar,
   StyleSheet,
@@ -105,6 +106,14 @@ export default function DeliveryOrdersScreen() {
 
   const queryClient = useQueryClient();
 
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === "web") {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const [refreshing, setRefreshing] = useState(false);
 
   const [showQR, setShowQR] = useState(false);
@@ -118,6 +127,8 @@ export default function DeliveryOrdersScreen() {
   const [creatingPayment, setCreatingPayment] = useState(false);
 
   const [processingCash, setProcessingCash] = useState(false);
+
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   /* ================= FETCH ORDERS ================= */
 
@@ -175,7 +186,7 @@ export default function DeliveryOrdersScreen() {
     },
 
     onError: (error: any) => {
-      Alert.alert("Error", error?.message || "Failed to update order");
+      showAlert("Error", error?.message || "Failed to update order");
     },
   });
 
@@ -195,7 +206,7 @@ export default function DeliveryOrdersScreen() {
       setPayment(null);
 
       if (!order.checkoutId) {
-        Alert.alert("Error", "Checkout ID missing");
+        showAlert("Error", "Checkout ID missing");
         setCreatingPayment(false);
         return;
       }
@@ -235,7 +246,7 @@ export default function DeliveryOrdersScreen() {
       }
 
       if (!upiId) {
-        Alert.alert("Error", "UPI ID not found. Cannot generate QR code.");
+        showAlert("Error", "UPI ID not found. Cannot generate QR code.");
         return;
       }
 
@@ -279,14 +290,14 @@ export default function DeliveryOrdersScreen() {
       setShowQR(true);
 
       if (paymentErrorMessage) {
-        Alert.alert(
+        showAlert(
           "Notice",
           "QR code generated from UPI ID. Payment transaction creation failed, but the QR is still usable.",
         );
       }
     } catch (err: any) {
       console.log("PAYMENT ERROR =>", err);
-      Alert.alert("Error", err?.message || "Unable to create payment");
+      showAlert("Error", err?.message || "Unable to create payment");
     } finally {
       setCreatingPayment(false);
     }
@@ -295,44 +306,67 @@ export default function DeliveryOrdersScreen() {
   /* ================= HELPERS ================= */
 
   const collectCashPayment = async (order: Order) => {
-    Alert.alert(
-      "Confirm",
-      "Confirm cash payment received and mark order delivered?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Yes",
-          onPress: async () => {
-            try {
-              setProcessingCash(true);
+    if (Platform.OS === "web") {
+      const confirmCash = window.confirm("Confirm cash payment received and mark order delivered?");
+      if (confirmCash) {
+        try {
+          setProcessingCash(true);
 
-              await statusMutation.mutateAsync({
-                jobId: order._id,
-                action: "deliver",
-              });
+          await statusMutation.mutateAsync({
+            jobId: order._id,
+            action: "deliver",
+          });
 
-              setShowPaymentOptions(false);
-              setSelectedOrder(null);
+          setShowPaymentOptions(false);
+          setSelectedOrder(null);
 
-              Alert.alert(
-                "Success",
-                "Cash payment collected and order completed",
-              );
-            } catch (err: any) {
-              Alert.alert(
-                "Error",
-                err?.message || "Failed to update order status",
-              );
-            } finally {
-              setProcessingCash(false);
-            }
+          showAlert("Success", "Cash payment collected and order completed");
+        } catch (err: any) {
+          showAlert("Error", err?.message || "Failed to update order status");
+        } finally {
+          setProcessingCash(false);
+        }
+      }
+    } else {
+      Alert.alert(
+        "Confirm",
+        "Confirm cash payment received and mark order delivered?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
           },
-        },
-      ],
-    );
+          {
+            text: "Yes",
+            onPress: async () => {
+              try {
+                setProcessingCash(true);
+
+                await statusMutation.mutateAsync({
+                  jobId: order._id,
+                  action: "deliver",
+                });
+
+                setShowPaymentOptions(false);
+                setSelectedOrder(null);
+
+                Alert.alert(
+                  "Success",
+                  "Cash payment collected and order completed",
+                );
+              } catch (err: any) {
+                Alert.alert(
+                  "Error",
+                  err?.message || "Failed to update order status",
+                );
+              } finally {
+                setProcessingCash(false);
+              }
+            },
+          },
+        ],
+      );
+    }
   };
 
   const getCurrentStepIndex = (status: string) => {
@@ -347,6 +381,8 @@ export default function DeliveryOrdersScreen() {
 
   const renderActionButtons = (order: Order) => {
     if (order.status === "ACCEPTED") {
+      const isPickingUp = statusMutation.isPending && statusMutation.variables?.jobId === order._id && statusMutation.variables?.action === "pickup";
+
       return (
         <TouchableOpacity
           style={styles.actionButton}
@@ -357,18 +393,26 @@ export default function DeliveryOrdersScreen() {
               action: "pickup",
             })
           }
+          disabled={statusMutation.isPending}
         >
           <LinearGradient
             colors={["#fbbf24", "#f59e0b"]}
             style={styles.actionButtonGradient}
           >
-            <Text style={styles.buttonText}>Pick Up Order</Text>
+            {isPickingUp ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Pick Up Order</Text>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       );
     }
 
     if (order.status === "PICKED_UP") {
+      const isDelivering = statusMutation.isPending && statusMutation.variables?.jobId === order._id && statusMutation.variables?.action === "deliver";
+      const isFailing = statusMutation.isPending && statusMutation.variables?.jobId === order._id && statusMutation.variables?.action === "fail";
+
       return (
         <>
           <TouchableOpacity
@@ -381,13 +425,13 @@ export default function DeliveryOrdersScreen() {
               }
               setShowPaymentOptions(true);
             }}
-            disabled={creatingPayment || processingCash}
+            disabled={creatingPayment || processingCash || statusMutation.isPending}
           >
             <LinearGradient
               colors={["#22c55e", "#15803d"]}
               style={styles.actionButtonGradient}
             >
-              {creatingPayment || processingCash ? (
+              {creatingPayment || processingCash || isDelivering ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={styles.buttonText}>Collect Payment</Text>
@@ -396,28 +440,43 @@ export default function DeliveryOrdersScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.failButton}
+            style={[styles.failButton, (isFailing || statusMutation.isPending) && { opacity: 0.7 }]}
             activeOpacity={0.85}
-            onPress={() =>
-              Alert.alert("Confirm", "Mark order as FAILED?", [
-                {
-                  text: "Cancel",
-                  style: "cancel",
-                },
+            onPress={() => {
+              if (Platform.OS === "web") {
+                const confirmFail = window.confirm("Mark order as FAILED?");
+                if (confirmFail) {
+                  statusMutation.mutate({
+                    jobId: order._id,
+                    action: "fail",
+                  });
+                }
+              } else {
+                Alert.alert("Confirm", "Mark order as FAILED?", [
+                  {
+                    text: "Cancel",
+                    style: "cancel",
+                  },
 
-                {
-                  text: "Yes",
+                  {
+                    text: "Yes",
 
-                  onPress: () =>
-                    statusMutation.mutate({
-                      jobId: order._id,
-                      action: "fail",
-                    }),
-                },
-              ])
-            }
+                    onPress: () =>
+                      statusMutation.mutate({
+                        jobId: order._id,
+                        action: "fail",
+                      }),
+                  },
+                ]);
+              }
+            }}
+            disabled={statusMutation.isPending}
           >
-            <Text style={styles.buttonText}>Mark Failed</Text>
+            {isFailing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Mark Failed</Text>
+            )}
           </TouchableOpacity>
         </>
       );
@@ -686,51 +745,67 @@ export default function DeliveryOrdersScreen() {
                 <Text style={styles.amountText}>₹{payment.paymentRs}</Text>
 
                 <TouchableOpacity
-                  style={styles.confirmButton}
+                  style={[styles.confirmButton, (confirmingPayment || statusMutation.isPending) && { opacity: 0.7 }]}
+                  disabled={confirmingPayment || statusMutation.isPending}
                   onPress={() => {
-                    Alert.alert(
-                      "Confirm",
-                      "Confirm payment received and mark order delivered?",
-                      [
-                        {
-                          text: "Cancel",
-                          style: "cancel",
-                        },
-                        {
-                          text: "Yes",
-                          onPress: async () => {
-                            try {
-                              await apiRequest(
-                                `/payment-transactions/${payment.checkoutId}/status`,
-                                {
-                                  method: "PATCH",
+                    const handleConfirmReceived = async () => {
+                      try {
+                        setConfirmingPayment(true);
 
-                                  body: JSON.stringify({
-                                    status: "SUCCESS",
-                                  }),
-                                },
-                              );
-
-                              await statusMutation.mutateAsync({
-                                jobId: selectedOrder!._id,
-                                action: "deliver",
-                              });
-
-                              setShowQR(false);
-                              setPayment(null);
-                              setSelectedOrder(null);
-
-                              Alert.alert("Success", "Payment received");
-                            } catch (err: any) {
-                              Alert.alert("Error", err.message);
-                            }
+                        await apiRequest(
+                          `/payment-transactions/${payment.checkoutId}/status`,
+                          {
+                            method: "PATCH",
+                            body: JSON.stringify({
+                              status: "SUCCESS",
+                            }),
                           },
-                        },
-                      ],
-                    );
+                        );
+
+                        await statusMutation.mutateAsync({
+                          jobId: selectedOrder!._id,
+                          action: "deliver",
+                        });
+
+                        setShowQR(false);
+                        setPayment(null);
+                        setSelectedOrder(null);
+
+                        showAlert("Success", "Payment received");
+                      } catch (err: any) {
+                        showAlert("Error", err.message);
+                      } finally {
+                        setConfirmingPayment(false);
+                      }
+                    };
+
+                    if (Platform.OS === "web") {
+                      if (window.confirm("Confirm payment received and mark order delivered?")) {
+                        handleConfirmReceived();
+                      }
+                    } else {
+                      Alert.alert(
+                        "Confirm",
+                        "Confirm payment received and mark order delivered?",
+                        [
+                          {
+                            text: "Cancel",
+                            style: "cancel",
+                          },
+                          {
+                            text: "Yes",
+                            onPress: handleConfirmReceived,
+                          },
+                        ],
+                      );
+                    }
                   }}
                 >
-                  <Text style={styles.buttonText}>Payment Received</Text>
+                  {confirmingPayment || (statusMutation.isPending && statusMutation.variables?.jobId === selectedOrder?._id) ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Payment Received</Text>
+                  )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
