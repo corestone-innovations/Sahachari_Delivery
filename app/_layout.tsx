@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Image, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 // Prevent auto-hide so we control the timing
 SplashScreen.preventAutoHideAsync();
@@ -78,9 +79,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <RootLayoutNav />
-        </QueryClientProvider>
+        <NotificationProvider>
+          <QueryClientProvider client={queryClient}>
+            <RootLayoutNav />
+          </QueryClientProvider>
+        </NotificationProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
