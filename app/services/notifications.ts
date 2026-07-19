@@ -4,15 +4,17 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // Configure how notifications are handled when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 /**
  * Registers device for push notifications and configures channels for Android.
@@ -22,6 +24,11 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   let token: string | null = null;
 
   if (Platform.OS === "web") {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        await Notification.requestPermission();
+      }
+    }
     return null;
   }
 
@@ -80,6 +87,28 @@ export async function sendLocalNotificationAsync(
   body: string,
   data?: Record<string, any>
 ) {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        const notification = new Notification(title, { body });
+        notification.onclick = () => {
+          window.focus();
+          window.dispatchEvent(new CustomEvent("notification-clicked", { detail: data }));
+        };
+      } else if (Notification.permission !== "denied") {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          const notification = new Notification(title, { body });
+          notification.onclick = () => {
+            window.focus();
+            window.dispatchEvent(new CustomEvent("notification-clicked", { detail: data }));
+          };
+        }
+      }
+    }
+    return;
+  }
+
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
