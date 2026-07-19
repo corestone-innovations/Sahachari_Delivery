@@ -1,7 +1,7 @@
 import { getToken } from "./auth";
 
 // Get API URL from environment or use default
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://d12kkdtchca0yi.cloudfront.net";
 
 interface ApiRequestOptions extends RequestInit {
   requiresAuth?: boolean;
