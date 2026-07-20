@@ -14,70 +14,83 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { apiRequest } from "./services/api";
+import { forgotPasswordApi, resetPasswordApi } from "./services/api";
+
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState<1 | 2>(1);
 
-  const changePasswordMutation = useMutation({
-    mutationFn: async (data: { email: string; newPassword: string }) => {
-      return apiRequest("/auth/change-password", {
-        method: "POST",
-        body: JSON.stringify(data),
-        requiresAuth: false,
-      });
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (emailVal: string) => {
+      return forgotPasswordApi(emailVal);
     },
     onSuccess: () => {
-      Alert.alert(
-        "Password Changed",
-        "Your password has been changed successfully. Please log in with your new password.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("/login"),
-          },
-        ],
-        { cancelable: false },
-      );
+      showAlert("Success", "OTP has been sent to your email successfully.");
+      setStep(2);
     },
     onError: (error: any) => {
-      Alert.alert(
-        "Error",
-        error?.message || "Failed to change password. Please try again.",
-      );
+      showAlert("Error", error?.message || "Failed to send OTP. Please try again.");
     },
   });
 
-  const handleChangePassword = () => {
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (payload: { emailVal: string; otpVal: string; newPass: string }) => {
+      return resetPasswordApi(payload.emailVal, payload.otpVal, payload.newPass);
+    },
+    onSuccess: () => {
+      showAlert("Success", "Your password has been changed successfully. Please log in with your new password.");
+      router.replace("/login");
+    },
+    onError: (error: any) => {
+      showAlert("Error", error?.message || "Failed to reset password. Please check your OTP and try again.");
+    },
+  });
+
+  const handleSendOtp = () => {
     if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email address");
+      showAlert("Error", "Please enter your email address");
       return;
     }
+    forgotPasswordMutation.mutate(email.trim());
+  };
 
-    if (!newPassword.trim()) {
-      Alert.alert("Error", "Please enter a new password");
+  const handleResetPassword = () => {
+    if (!otp.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      showAlert("Error", "Please fill in all fields");
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      showAlert("Error", "Password must be at least 6 characters");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      showAlert("Error", "Passwords do not match");
       return;
     }
 
-    changePasswordMutation.mutate({
-      email,
-      newPassword,
+    resetPasswordMutation.mutate({
+      emailVal: email.trim(),
+      otpVal: otp.trim(),
+      newPass: newPassword,
     });
   };
+
+  const isPending = forgotPasswordMutation.isPending || resetPasswordMutation.isPending;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
@@ -90,6 +103,17 @@ export default function ForgotPasswordScreen() {
           style={styles.gradient}
         >
           <View style={styles.content}>
+            {/* Back Arrow Button when in Step 2 */}
+            {step === 2 && (
+              <TouchableOpacity
+                onPress={() => setStep(1)}
+                style={styles.backButton}
+                disabled={isPending}
+              >
+                <Text style={styles.backButtonText}>← Back</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Compact header */}
             <View style={styles.header}>
               <View style={styles.logoContainer}>
@@ -104,74 +128,97 @@ export default function ForgotPasswordScreen() {
                   </View>
                 </LinearGradient>
               </View>
-              <Text style={styles.title}>Change Password</Text>
+              <Text style={styles.title}>
+                {step === 1 ? "Forgot Password" : "Reset Password"}
+              </Text>
               <Text style={styles.subtitle}>
-                Enter your details to reset password
+                {step === 1 
+                  ? "Enter your email to receive a password reset OTP" 
+                  : `Enter the 6-digit OTP code sent to ${email}`}
               </Text>
             </View>
 
             {/* Form Card */}
             <View style={styles.formCard}>
               <View style={styles.formCardInner}>
-                {/* Email Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email Address</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your email"
-                      placeholderTextColor="#9ca3af"
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      editable={!changePasswordMutation.isPending}
-                    />
+                {step === 1 ? (
+                  /* Step 1: Email collection */
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Email Address</Text>
+                    <View style={styles.inputWrapper}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your email"
+                        placeholderTextColor="#9ca3af"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        editable={!isPending}
+                      />
+                    </View>
                   </View>
-                </View>
+                ) : (
+                  /* Step 2: OTP and New Password */
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Verification OTP Code</Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Enter 6-digit OTP"
+                          placeholderTextColor="#9ca3af"
+                          value={otp}
+                          onChangeText={setOtp}
+                          keyboardType="numeric"
+                          maxLength={6}
+                          editable={!isPending}
+                        />
+                      </View>
+                    </View>
 
-                {/* New Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>New Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter new password"
-                      placeholderTextColor="#9ca3af"
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      secureTextEntry
-                      editable={!changePasswordMutation.isPending}
-                    />
-                  </View>
-                </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>New Password</Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Enter new password"
+                          placeholderTextColor="#9ca3af"
+                          value={newPassword}
+                          onChangeText={setNewPassword}
+                          secureTextEntry
+                          editable={!isPending}
+                        />
+                      </View>
+                    </View>
 
-                {/* Confirm New Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Confirm New Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Re-enter new password"
-                      placeholderTextColor="#9ca3af"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry
-                      editable={!changePasswordMutation.isPending}
-                    />
-                  </View>
-                </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Confirm New Password</Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Re-enter new password"
+                          placeholderTextColor="#9ca3af"
+                          value={confirmPassword}
+                          onChangeText={setConfirmPassword}
+                          secureTextEntry
+                          editable={!isPending}
+                        />
+                      </View>
+                    </View>
+                  </>
+                )}
 
-                {/* Change Password Button */}
+                {/* Submit Button */}
                 <TouchableOpacity
-                  onPress={handleChangePassword}
-                  disabled={changePasswordMutation.isPending}
+                  onPress={step === 1 ? handleSendOtp : handleResetPassword}
+                  disabled={isPending}
                   activeOpacity={0.85}
                   style={styles.buttonContainer}
                 >
                   <LinearGradient
                     colors={
-                      changePasswordMutation.isPending
+                      isPending
                         ? ["#a5d6a7", "#81c784"]
                         : ["#7ed957", "#4CAF50", "#2e7d32"]
                     }
@@ -179,10 +226,12 @@ export default function ForgotPasswordScreen() {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    {changePasswordMutation.isPending ? (
+                    {isPending ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.buttonText}>Change Password</Text>
+                      <Text style={styles.buttonText}>
+                        {step === 1 ? "Send OTP" : "Reset Password"}
+                      </Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -201,7 +250,7 @@ export default function ForgotPasswordScreen() {
                   </Text>
                   <TouchableOpacity
                     onPress={() => router.push("/login")}
-                    disabled={changePasswordMutation.isPending}
+                    disabled={isPending}
                   >
                     <Text style={styles.linkText}>Log In</Text>
                   </TouchableOpacity>
@@ -226,6 +275,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: "center",
+  },
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    padding: 10,
+    zIndex: 10,
+  },
+  backButtonText: {
+    color: "#2e7d32",
+    fontSize: 16,
+    fontWeight: "700",
   },
   header: {
     alignItems: "center",
