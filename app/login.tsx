@@ -20,6 +20,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "./contexts/AuthContext";
 import { getCurrentUser, loginApi } from "./services/api";
 
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === "web") {
+    alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(
+      title,
+      message,
+      [{ text: "OK", style: "default" }],
+      { cancelable: true }
+    );
+  }
+};
+
 export default function LoginScreen() {
   const router = useRouter();
   const { setAuthToken } = useAuth();
@@ -27,6 +40,8 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   // SHOW / HIDE PASSWORD
   const [showPassword, setShowPassword] = useState(false);
@@ -55,17 +70,65 @@ export default function LoginScreen() {
     onError: (error: any) => {
       console.error("Login error:", error);
 
-      Alert.alert("Login Failed", error.message || "Invalid email or password");
+      showAlert("Login Failed", error?.message || "Invalid email or password");
     },
   });
 
+  const validateForm = () => {
+    let isValid = true;
+    let errEmail = "";
+    let errPassword = "";
+
+    const trimmedEmail = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!trimmedEmail) {
+      errEmail = "Email address is required";
+      isValid = false;
+    } else if (!emailRegex.test(trimmedEmail)) {
+      errEmail = "Please enter a valid email address";
+      isValid = false;
+    }
+
+    if (!password) {
+      errPassword = "Password is required";
+      isValid = false;
+    } else if (password.length < 6) {
+      errPassword = "Password must be at least 6 characters";
+      isValid = false;
+    }
+
+    setEmailError(errEmail);
+    setPasswordError(errPassword);
+
+    if (!isValid) {
+      const alertMsg = errEmail || errPassword;
+      showAlert("Validation Error", alertMsg);
+    }
+
+    return isValid;
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (emailError) {
+      setEmailError("");
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (passwordError) {
+      setPasswordError("");
+    }
+  };
+
   const handleLogin = () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (!validateForm()) {
       return;
     }
 
-    loginMutation.mutate({ email, password });
+    loginMutation.mutate({ email: email.trim(), password });
   };
 
   return (
@@ -107,32 +170,41 @@ export default function LoginScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Email Address</Text>
 
-                  <View style={styles.inputWrapper}>
+                  <View style={[styles.inputWrapper, emailError ? styles.inputWrapperError : null]}>
                     <TextInput
                       style={styles.input}
                       placeholder="Enter your email"
                       placeholderTextColor="#9ca3af"
                       value={email}
-                      onChangeText={setEmail}
+                      onChangeText={handleEmailChange}
                       keyboardType="email-address"
                       autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="next"
                       editable={!loginMutation.isPending}
                     />
                   </View>
+                  {!!emailError && (
+                    <Text style={styles.errorText}>{emailError}</Text>
+                  )}
                 </View>
 
                 {/* Password */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Password</Text>
 
-                  <View style={styles.inputWrapper}>
+                  <View style={[styles.inputWrapper, passwordError ? styles.inputWrapperError : null]}>
                     <TextInput
                       style={styles.input}
                       placeholder="Enter your password"
                       placeholderTextColor="#9ca3af"
                       value={password}
-                      onChangeText={setPassword}
+                      onChangeText={handlePasswordChange}
                       secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="done"
+                      onSubmitEditing={handleLogin}
                       editable={!loginMutation.isPending}
                     />
 
@@ -147,6 +219,9 @@ export default function LoginScreen() {
                       />
                     </TouchableOpacity>
                   </View>
+                  {!!passwordError && (
+                    <Text style={styles.errorText}>{passwordError}</Text>
+                  )}
                 </View>
 
                 {/* Forgot Password */}
@@ -311,6 +386,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 1,
+  },
+
+  inputWrapperError: {
+    borderColor: "#ef4444",
+    backgroundColor: "#fef2f2",
+  },
+
+  errorText: {
+    color: "#ef4444",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 6,
+    marginLeft: 2,
   },
 
   input: {
