@@ -17,7 +17,7 @@ import {
 /* ================= LOGIN ================= */
 
 export function useLogin() {
-  const { setAuthToken } = useAuth();
+  const { setAuthToken, clearAuthToken } = useAuth();
 
   const router = useRouter();
 
@@ -29,28 +29,31 @@ export function useLogin() {
       password: string;
     }) => {
       const response = await loginApi(credentials);
+      await setAuthToken(response.accessToken);
 
-      return response;
+      try {
+        const userData = await getCurrentUser();
+        const role = (userData?.role || "").toUpperCase();
+
+        if (role !== "DELIVERY") {
+          await clearAuthToken();
+          throw new Error(
+            "Access denied. Only delivery partners with role DELIVERY can log in."
+          );
+        }
+
+        return { response, userData };
+      } catch (err) {
+        await clearAuthToken();
+        throw err;
+      }
     },
 
     onSuccess: async (data) => {
-      // Save token
-      await setAuthToken(data.accessToken);
-
-      // Fetch current user
-      try {
-        const userData = await getCurrentUser();
-
-        queryClient.setQueryData(
-          ["currentUser"],
-          userData
-        );
-      } catch (error) {
-        console.log(
-          "Could not fetch user data:",
-          error
-        );
-      }
+      queryClient.setQueryData(
+        ["currentUser"],
+        data.userData
+      );
 
       // Go to main app
       router.replace("/(tabs)");

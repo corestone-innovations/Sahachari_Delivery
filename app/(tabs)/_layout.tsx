@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useAuth } from "../contexts/AuthContext";
+import { getCurrentUser } from "../services/api";
 
 /* ================= ICON ================= */
 
@@ -38,7 +39,31 @@ export default function TabLayout() {
     // If user is not logged in go to LOGIN page
     if (!token) {
       router.replace("/login");
+      return;
     }
+
+    const checkRole = async () => {
+      try {
+        const userData = await getCurrentUser();
+        const role = (userData?.role || "").toUpperCase();
+        if (role !== "DELIVERY") {
+          await clearAuthToken();
+          router.replace("/login");
+          if (Platform.OS === "web") {
+            alert("Access denied. Only delivery partners with role DELIVERY can access this app.");
+          } else {
+            Alert.alert(
+              "Access Denied",
+              "Only delivery partners with role DELIVERY can access this app."
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check user role:", err);
+      }
+    };
+
+    checkRole();
   }, [token, isLoading]);
 
   /* ---------- ANDROID BACK BUTTON ---------- */

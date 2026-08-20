@@ -126,7 +126,7 @@ export async function signupApi(
 }
 
 export async function getCurrentUser(): Promise<User> {
-  return apiRequest("/auth/me", {
+  return apiRequest("/users/me", {
     method: "GET",
     requiresAuth: true, // Token required
   });

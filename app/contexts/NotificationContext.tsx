@@ -26,9 +26,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         
         // Try updating the user's profile with the token, catching any API exceptions
         try {
-          const user = await apiRequest<{ id: string }>("/auth/me");
-          if (user?.id) {
-            await apiRequest(`/users/${user.id}`, {
+          const user = await apiRequest<{ id?: string; _id?: string }>("/users/me");
+          const userId = user?.id || user?._id;
+          if (userId) {
+            await apiRequest(`/users/${userId}`, {
               method: "PUT",
               body: JSON.stringify({ pushToken: registeredToken }),
             });

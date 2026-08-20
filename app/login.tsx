@@ -35,7 +35,7 @@ const showAlert = (title: string, message: string) => {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { setAuthToken } = useAuth();
+  const { setAuthToken, clearAuthToken } = useAuth();
   const queryClient = useQueryClient();
 
   const [email, setEmail] = useState("");
@@ -49,21 +49,29 @@ export default function LoginScreen() {
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
       const loginResponse = await loginApi(credentials);
-      return loginResponse;
+      
+      // Save token first so getCurrentUser can authenticate
+      await setAuthToken(loginResponse.accessToken);
+
+      try {
+        const userData = await getCurrentUser();
+        const role = (userData?.role || "").toUpperCase();
+
+        if (role !== "DELIVERY") {
+          await clearAuthToken();
+          throw new Error("Access denied. Only delivery partners with role DELIVERY can log in.");
+        }
+
+        return { loginResponse, userData };
+      } catch (err: any) {
+        await clearAuthToken();
+        throw err;
+      }
     },
 
     onSuccess: async (data) => {
       console.log("Login response:", data);
-
-      await setAuthToken(data.accessToken);
-
-      try {
-        const userData = await getCurrentUser();
-        queryClient.setQueryData(["currentUser"], userData);
-      } catch (error) {
-        console.log("Could not fetch user data:", error);
-      }
-
+      queryClient.setQueryData(["currentUser"], data.userData);
       router.replace("/(tabs)");
     },
 
