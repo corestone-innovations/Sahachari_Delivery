@@ -46,10 +46,10 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       return null;
     }
 
-    // Extract project ID from expo config or use the hardcoded fallback from app.json
+    // Extract project ID from expo config or EAS config
     const projectId =
-      Constants.expoConfig?.extra?.eas?.projectId ??
-      "14bba26f-da87-45ab-ae43-95101d443928";
+      Constants.expoConfig?.extra?.eas?.projectId ||
+      Constants.easConfig?.projectId;
 
     if (projectId) {
       token = (
@@ -59,7 +59,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       ).data;
       console.log("Expo Push Token successfully fetched:", token);
     } else {
-      console.warn("No EAS Project ID found in Expo configuration");
+      console.warn("No EAS Project ID configured yet in app.json");
     }
   } catch (error) {
     console.error("Error registering for push notifications:", error);
