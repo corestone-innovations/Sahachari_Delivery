@@ -12,6 +12,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  InputAccessoryView,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   RefreshControl,
@@ -348,55 +351,121 @@ export default function ProfileScreen() {
 
       {/* ---------- EDIT MODAL ---------- */}
 
-      <Modal visible={editModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Update {editingField === "mobileNumber" ? "Mobile" : "Address"}
-            </Text>
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setEditModalVisible(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeaderRow}>
+                <Text style={styles.modalTitle}>
+                  Update {editingField === "mobileNumber" ? "Mobile" : "Address"}
+                </Text>
 
-            <TextInput
-              style={[
-                styles.modalInput,
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setEditModalVisible(false);
+                  }}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityLabel="Close"
+                  accessibilityRole="button"
+                >
+                  <FontAwesome name="times" size={18} color="#64748b" />
+                </TouchableOpacity>
+              </View>
 
-                editingField === "address" && {
-                  minHeight: 100,
-                  textAlignVertical: "top",
-                },
-              ]}
-              value={editValue}
-              onChangeText={setEditValue}
-              placeholder="Type here..."
-              multiline={editingField === "address"}
-              keyboardType={
-                editingField === "mobileNumber" ? "phone-pad" : "default"
-              }
-              autoFocus
-            />
+              <TextInput
+                inputAccessoryViewID="deliveryEditProfileInputAccessory"
+                style={[
+                  styles.modalInput,
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setEditModalVisible(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
+                  editingField === "address" && {
+                    minHeight: 100,
+                    textAlignVertical: "top",
+                  },
+                ]}
+                value={editValue}
+                onChangeText={setEditValue}
+                placeholder="Type here..."
+                multiline={editingField === "address"}
+                keyboardType={
+                  editingField === "mobileNumber" ? "phone-pad" : "default"
+                }
+                autoFocus
+              />
 
-              <TouchableOpacity
-                style={[styles.saveBtn, isSaveDisabled && { opacity: 0.65 }]}
-                onPress={handleSave}
-                disabled={isSaveDisabled}
-              >
-                {updateMutation.isPending ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveBtnText}>Save</Text>
-                )}
-              </TouchableOpacity>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setEditModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.saveBtn, isSaveDisabled && { opacity: 0.65 }]}
+                  onPress={handleSave}
+                  disabled={isSaveDisabled}
+                >
+                  {updateMutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Save</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
+
+      {/* ---------- IOS KEYBOARD ACCESSORY BAR ---------- */}
+      {Platform.OS === "ios" && (
+        <InputAccessoryView nativeID="deliveryEditProfileInputAccessory">
+          <View style={styles.keyboardAccessoryBar}>
+            <TouchableOpacity
+              style={styles.keyboardAccessoryBackBtn}
+              onPress={() => {
+                Keyboard.dismiss();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Back"
+              accessibilityRole="button"
+            >
+              <FontAwesome name="chevron-left" size={14} color="#16a34a" />
+              <Text style={styles.keyboardAccessoryBackText}>Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.keyboardAccessoryDoneBtn}
+              onPress={() => {
+                Keyboard.dismiss();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Done"
+              accessibilityRole="button"
+            >
+              <Text style={styles.keyboardAccessoryDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </LinearGradient>
   );
 }
@@ -621,12 +690,63 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
 
+  modalHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f1f5f9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   modalTitle: {
     fontSize: 20,
     fontWeight: "900",
     color: "#0f172a",
-    marginBottom: 24,
     letterSpacing: -0.3,
+  },
+
+  keyboardAccessoryBar: {
+    height: 46,
+    backgroundColor: "#f8fafc",
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+  },
+
+  keyboardAccessoryBackBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    gap: 6,
+  },
+
+  keyboardAccessoryBackText: {
+    fontSize: 16,
+    color: "#16a34a",
+    fontWeight: "700",
+  },
+
+  keyboardAccessoryDoneBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+
+  keyboardAccessoryDoneText: {
+    fontSize: 16,
+    color: "#16a34a",
+    fontWeight: "700",
   },
 
   modalInput: {

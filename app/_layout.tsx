@@ -94,10 +94,23 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animation: "default",
+        }}
+      >
         {/* Auth screens */}
         <Stack.Screen name="login" />
-        <Stack.Screen name="forgot-password" />
+        <Stack.Screen
+          name="forgot-password"
+          options={{
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
 
         {/* Main app */}
         <Stack.Screen name="(tabs)" />

@@ -103,16 +103,22 @@ export default function ForgotPasswordScreen() {
           style={styles.gradient}
         >
           <View style={styles.content}>
-            {/* Back Arrow Button when in Step 2 */}
-            {step === 2 && (
-              <TouchableOpacity
-                onPress={() => setStep(1)}
-                style={styles.backButton}
-                disabled={isPending}
-              >
-                <Text style={styles.backButtonText}>← Back</Text>
-              </TouchableOpacity>
-            )}
+            {/* Back Button */}
+            <TouchableOpacity
+              onPress={() => {
+                if (step === 2) {
+                  setStep(1);
+                } else if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/login");
+                }
+              }}
+              style={styles.backButton}
+              disabled={isPending}
+            >
+              <Text style={styles.backButtonText}>← Back</Text>
+            </TouchableOpacity>
 
             {/* Compact header */}
             <View style={styles.header}>
@@ -249,7 +255,13 @@ export default function ForgotPasswordScreen() {
                     Remember your password?{" "}
                   </Text>
                   <TouchableOpacity
-                    onPress={() => router.push("/login")}
+                    onPress={() => {
+                      if (router.canGoBack()) {
+                        router.back();
+                      } else {
+                        router.replace("/login");
+                      }
+                    }}
                     disabled={isPending}
                   >
                     <Text style={styles.linkText}>Log In</Text>
